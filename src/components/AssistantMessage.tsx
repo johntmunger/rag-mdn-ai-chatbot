@@ -5,15 +5,7 @@ import ReactMarkdown from "react-markdown";
 import rehypeHighlight from "rehype-highlight";
 import rehypeRaw from "rehype-raw";
 import remarkGfm from "remark-gfm";
-import {
-  Copy,
-  ThumbsUp,
-  ThumbsDown,
-  RotateCcw,
-  Star,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { Copy, RotateCcw, Star, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CodeBlock } from "./CodeBlock";
 import { SourcesFooter } from "./SourcesFooter";
@@ -21,7 +13,6 @@ import type { Message } from "@/types";
 
 interface AssistantMessageProps {
   message: Message;
-  onFeedback: (messageId: string, feedback: "up" | "down") => void;
   onRegenerate: (messageId: string) => void;
   onPin: (messageId: string) => void;
   onCopy: (content: string) => void;
@@ -29,26 +20,17 @@ interface AssistantMessageProps {
 
 export function AssistantMessage({
   message,
-  onFeedback,
   onRegenerate,
   onPin,
   onCopy,
 }: AssistantMessageProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [showFeedbackReason, setShowFeedbackReason] = useState(false);
 
   const isLongMessage = message.content.length > 2000;
 
   const handleCopy = () => {
     onCopy(message.content);
-  };
-
-  const handleFeedback = (feedback: "up" | "down") => {
-    onFeedback(message.id, feedback);
-    if (feedback === "down") {
-      setShowFeedbackReason(true);
-    }
   };
 
   return (
@@ -68,29 +50,6 @@ export function AssistantMessage({
             >
               <Copy className="w-4 h-4" />
             </button>
-            <button
-              onClick={() => handleFeedback("up")}
-              className={cn(
-                "p-1.5 rounded hover:bg-[var(--hover-bg)] transition-colors",
-                message.feedback === "up" &&
-                  "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-              )}
-              title="Good response"
-            >
-              <ThumbsUp className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleFeedback("down")}
-              className={cn(
-                "p-1.5 rounded hover:bg-[var(--hover-bg)] transition-colors",
-                message.feedback === "down" &&
-                  "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-              )}
-              title="Bad response"
-            >
-              <ThumbsDown className="w-4 h-4" />
-            </button>
-            <div className="w-px h-4 bg-[var(--border)]" />
             <button
               onClick={() => onRegenerate(message.id)}
               className="p-1.5 rounded hover:bg-[var(--hover-bg)] transition-colors"
@@ -228,39 +187,6 @@ export function AssistantMessage({
               </>
             )}
           </button>
-        )}
-
-        {/* Feedback reason form */}
-        {showFeedbackReason && message.feedback === "down" && (
-          <div className="mt-4 p-3 bg-[var(--muted)] rounded-lg animate-fade-in">
-            <p className="text-sm font-medium mb-2">What was wrong?</p>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {[
-                "Incorrect",
-                "Confusing",
-                "Too verbose",
-                "Code doesn't run",
-              ].map((reason) => (
-                <button
-                  key={reason}
-                  className="px-3 py-1 text-sm rounded-full bg-[var(--background)] hover:bg-[var(--hover-bg)] border border-[var(--border)] transition-colors"
-                >
-                  {reason}
-                </button>
-              ))}
-            </div>
-            <textarea
-              placeholder="Additional feedback (optional)"
-              className="w-full p-2 text-sm rounded border border-[var(--border)] bg-[var(--background)] resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-              rows={2}
-            />
-            <button
-              onClick={() => setShowFeedbackReason(false)}
-              className="mt-2 px-3 py-1 text-sm bg-[var(--accent)] text-white rounded hover:bg-[var(--accent-hover)] transition-colors"
-            >
-              Submit
-            </button>
-          </div>
         )}
 
         {/* Citations footer */}

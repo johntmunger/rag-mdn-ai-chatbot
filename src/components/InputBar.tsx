@@ -51,7 +51,7 @@ export function InputBar({
   };
 
   return (
-    <div className="sticky bottom-0 bg-[var(--background)] border-t border-[var(--border)] py-4 overflow-x-hidden">
+    <div className="sticky bottom-0 left-0 right-0 bg-[var(--background)] border-t border-[var(--border)] py-4">
       <div className="max-w-4xl mx-auto px-4">
         {/* Quick suggestions */}
         {suggestions.length > 0 && (
@@ -75,7 +75,13 @@ export function InputBar({
         )}
 
         {/* Input container */}
-        <div className="relative">
+        <div
+          className={cn(
+            "relative rounded-2xl border border-[var(--border)]",
+            "bg-[var(--input-bg)] transition-all",
+            "focus-within:ring-2 focus-within:ring-[var(--accent)]"
+          )}
+        >
           <textarea
             ref={textareaRef}
             value={input}
@@ -85,8 +91,8 @@ export function InputBar({
             disabled={disabled}
             className={cn(
               "w-full p-4 pr-14 rounded-2xl resize-none",
-              "bg-[var(--input-bg)] border border-[var(--border)]",
-              "focus:outline-none focus:ring-2 focus:ring-[var(--accent)]",
+              "bg-transparent border-0",
+              "focus:outline-none",
               "transition-all max-h-[200px] overflow-y-auto",
               disabled && "opacity-50 cursor-not-allowed"
             )}

@@ -11,7 +11,6 @@ import type { Message } from "@/types";
 interface MessageListProps {
   messages: Message[];
   isGenerating: boolean;
-  onFeedback: (messageId: string, feedback: "up" | "down") => void;
   onRegenerate: (messageId: string) => void;
   onPin: (messageId: string) => void;
   onCopy: (content: string) => void;
@@ -20,7 +19,6 @@ interface MessageListProps {
 export function MessageList({
   messages,
   isGenerating,
-  onFeedback,
   onRegenerate,
   onPin,
   onCopy,
@@ -75,7 +73,6 @@ export function MessageList({
             <AssistantMessage
               key={message.id}
               message={message}
-              onFeedback={onFeedback}
               onRegenerate={onRegenerate}
               onPin={onPin}
               onCopy={onCopy}

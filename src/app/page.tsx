@@ -123,12 +123,6 @@ This answer demonstrates the code-first approach with syntax highlighting, line 
     setMessages([...currentMessages, assistantMessage]);
   };
 
-  const handleFeedback = (messageId: string, feedback: "up" | "down") => {
-    setMessages(
-      messages.map((msg) => (msg.id === messageId ? { ...msg, feedback } : msg))
-    );
-  };
-
   const handleRegenerate = async (messageId: string) => {
     const messageIndex = messages.findIndex((m) => m.id === messageId);
     if (messageIndex === -1) return;
@@ -202,7 +196,6 @@ This answer demonstrates the code-first approach with syntax highlighting, line 
           <MessageList
             messages={messages}
             isGenerating={isGenerating}
-            onFeedback={handleFeedback}
             onRegenerate={handleRegenerate}
             onPin={handlePin}
             onCopy={handleCopy}
