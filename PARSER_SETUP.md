@@ -1,52 +1,80 @@
 # LlamaParse Setup Guide
 
-Quick guide to get LlamaParse working with TypeScript.
+Complete guide for parsing PDFs and preparing documentation for RAG ingestion.
 
-## Already Completed ✅
+## ✅ Setup Complete
 
-1. ✅ Dependencies installed (`llamaindex`, `dotenv`, `tsx`)
+1. ✅ Dependencies installed (`@llamaindex/cloud`, `llamaindex`, `dotenv`, `tsx`)
 2. ✅ API key configured in `.env` file
-3. ✅ TypeScript parser files created
-4. ✅ NPM script added
+3. ✅ Organized directory structure created (`data/pdfs/`, `data/processed/`)
+4. ✅ Flexible parsing scripts implemented
+5. ✅ NPM scripts configured for easy parsing
 
-## Files Created
-
-### 1. `scripts/parse-canada.ts`
-
-Standalone executable script to parse canada.pdf
-
-### 2. `src/lib/parser.ts`
-
-Reusable parser module for your application
-
-## How to Use
-
-### Step 1: Place Your PDF
-
-Put `canada.pdf` in the `RAG MDN` directory:
+## Directory Structure
 
 ```
-/Users/m1promachine2022/code/AIDD/
-└── RAG MDN/
-    ├── .env              ← Your API key is here
-    ├── canada.pdf        ← Place your PDF here
-    └── rag-mdn/
-        └── scripts/
-            └── parse-canada.ts
+rag-mdn/
+├── data/
+│   ├── pdfs/                    # Input: PDF files to parse
+│   │   └── canada.pdf          # Example Canadian document
+│   ├── markdown/                # Input: Pre-existing markdown files
+│   ├── html/                    # Input: HTML documentation
+│   └── processed/               # Processing pipeline outputs
+│       ├── raw/                 # Parsed markdown from PDFs
+│       ├── chunked/             # Chunked content (coming soon)
+│       └── embedded/            # Vector embeddings (coming soon)
+├── scripts/
+│   ├── parse-pdf.ts            # Main flexible PDF parser
+│   ├── parse-canada.ts         # Legacy: Canada-specific parser
+│   └── parse-mediacentre.ts    # Legacy: MediaCentre parser
+└── src/lib/
+    └── parser.ts               # Reusable parser module
+```
+
+## Quick Start
+
+### Step 1: Add Your PDF Files
+
+Place PDF files in the `data/pdfs/` directory:
+
+```bash
+# Add your PDFs
+cp your-document.pdf rag-mdn/data/pdfs/
+
+# Example: canada.pdf is already there
+ls data/pdfs/
+# canada.pdf
 ```
 
 ### Step 2: Run the Parser
 
+**Parse all PDFs in the directory:**
 ```bash
 npm run parse
+# or
+npm run parse:pdf
+```
+
+**Parse a specific PDF:**
+```bash
+npm run parse:pdf canada.pdf
+```
+
+**Get help:**
+```bash
+npm run parse:pdf -- --help
 ```
 
 ### Step 3: Check Output
 
-Parsed content will be saved to:
+Parsed content is saved to `data/processed/raw/`:
 
-```
-rag-mdn/output/canada-parsed-1.md
+```bash
+ls data/processed/raw/
+# canada-1.md
+# canada-2.md
+# canada-1.metadata.json
+# canada-2.metadata.json
 ```
 
 ## Code Examples

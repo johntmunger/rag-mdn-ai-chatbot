@@ -1,0 +1,45 @@
+# Data Directory .gitignore
+# This manages what files are tracked in git vs regenerated
+
+# ==============================================
+# INPUT FILES - Be selective about what to track
+# ==============================================
+
+# PDFs - Track small example files, ignore large docs
+pdfs/*.pdf
+!pdfs/canada.pdf          # Keep example file for testing
+
+# Markdown - Ignore most, track specific examples if needed
+markdown/*.md
+# !markdown/example.md    # Uncomment to track specific files
+
+# HTML - Usually ignore all
+html/**
+
+# ==============================================
+# PROCESSED FILES - Never track (can regenerate)
+# ==============================================
+
+# Raw parsed outputs
+processed/raw/*.md
+processed/raw/*.json
+processed/raw/*.metadata.json
+
+# Chunked outputs
+processed/chunked/*.json
+processed/chunked/*.chunks.json
+
+# Embeddings
+processed/embedded/*.json
+processed/embedded/*.embeddings.json
+processed/embedded/*.vectors.json
+
+# ==============================================
+# KEEP DIRECTORY STRUCTURE
+# ==============================================
+
+# Keep .gitkeep files to preserve empty directories
+!**/.gitkeep
+
+# Keep README files
+!**/README.md
