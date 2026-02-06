@@ -5,6 +5,92 @@ All notable changes to the MDN Developer Chat project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-06
+
+### Added - RAG Infrastructure & Document Processing Pipeline
+
+#### LlamaParse Integration
+
+- **PDF Parsing**: Integrated LlamaParse for intelligent PDF document parsing
+  - Installed `@llamaindex/cloud` for LlamaParse API access
+  - Installed `llamaindex` core library for document handling
+  - Added `dotenv` for environment variable management
+  - Added `tsx` for TypeScript execution
+- **Parsing Scripts**:
+  - `scripts/parse-pdf.ts` - Flexible PDF parser supporting single or batch processing
+  - `scripts/parse-canada.ts` - Legacy example script (Canada document)
+  - `scripts/parse-mediacentre.ts` - Legacy example script (MediaCentre document)
+  - `src/lib/parser.ts` - Reusable parser module for application integration
+- **NPM Commands**:
+  - `npm run parse` - Parse all PDFs in data/pdfs/ directory
+  - `npm run parse:pdf` - Main parsing command (same as parse)
+  - `npm run parse:pdf <filename>` - Parse specific PDF file
+  - `npm run parse:canada` - Parse Canada example (legacy)
+  - `npm run parse:mediacentre` - Parse MediaCentre example (legacy)
+
+#### Organized Data Structure
+
+- **Input Directories**:
+  - `data/pdfs/` - PDF documents for parsing
+  - `data/markdown/` - Pre-existing markdown files
+  - `data/html/` - HTML documentation files
+- **Processing Pipeline Directories**:
+  - `data/processed/raw/` - Parsed markdown output from PDFs
+  - `data/processed/chunked/` - Prepared for chunking stage (coming soon)
+  - `data/processed/embedded/` - Prepared for embeddings stage (coming soon)
+- **File Management**:
+  - Added `.gitignore` for data directory (tracks examples, ignores outputs)
+  - Added `.gitkeep` files to preserve empty directory structure
+  - Example document: `data/pdfs/canada.pdf` (Canadian fun facts)
+
+#### Documentation
+
+- **PIPELINE.md**: Comprehensive RAG pipeline documentation
+  - Stage 1: Parse Documents (✅ Complete)
+  - Stage 2: Chunk Content (🔨 Planned)
+  - Stage 3: Generate Embeddings (🔨 Planned)
+  - Stage 4: Store in Vector Database (🔨 Planned)
+  - Stage 5: Implement Retrieval (🔨 Planned)
+  - Includes implementation details, code examples, and cost estimates
+- **data/README.md**: Complete guide to data directory structure and workflow
+  - Directory structure explanation
+  - Processing pipeline overview
+  - File naming conventions
+  - Best practices for development and production
+  - Git tracking guidelines
+- **PARSER_SETUP.md**: Updated with new directory structure and flexible parsing workflow
+
+#### Technical Improvements
+
+- **Scalable Architecture**: Organized structure ready for large MDN documentation sets
+- **Batch Processing**: Support for processing multiple PDFs in one command
+- **Metadata Tracking**: Automatic metadata generation for parsed documents
+- **Clean Separation**: Input files separate from processed outputs
+
+### Changed
+
+- **Directory Structure**: Moved from flat structure to organized data/ hierarchy
+- **Parsing Workflow**: Switched from hardcoded paths to flexible directory-based system
+- **Output Location**: Changed from `output/` to `data/processed/raw/` for better organization
+
+### Removed
+
+- **Old Output Directory**: Removed `output/` directory (replaced by `data/processed/`)
+
+### Developer Notes
+
+This release establishes the foundation for the full RAG (Retrieval-Augmented Generation) pipeline. The parsing infrastructure is complete and tested. Next steps will implement:
+
+1. Document chunking with semantic splitting
+2. Embedding generation using OpenAI or similar
+3. Vector database integration (Pinecone recommended)
+4. Retrieval logic for chat backend
+5. Citation tracking with source attribution
+
+The system is designed to scale from small example documents to the complete MDN documentation corpus (~50,000+ pages).
+
+---
+
 ## [0.1.0] - 2026-02-05
 
 ### Added - Initial Release
