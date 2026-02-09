@@ -3,11 +3,9 @@ import "dotenv/config";
 import { db, closeConnection } from "../src/db/index";
 import {
   users,
-  chatConversations,
-  chatMessages,
   documentEmbeddings,
 } from "../src/db/schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 /**
  * Test database queries and display results
@@ -32,46 +30,7 @@ async function testQueries() {
     }
 
     // ============================================
-    // 2. Query Conversations
-    // ============================================
-    console.log("💬 Conversations:");
-    const conversations = await db
-      .select()
-      .from(chatConversations)
-      .orderBy(desc(chatConversations.createdAt));
-
-    if (conversations.length === 0) {
-      console.log("   No conversations found.\n");
-    } else {
-      conversations.forEach((conv) => {
-        console.log(`   • ${conv.title || "Untitled"}`);
-      });
-      console.log("");
-    }
-
-    // ============================================
-    // 3. Query Messages
-    // ============================================
-    if (conversations.length > 0) {
-      console.log("💬 Messages in first conversation:");
-      const messages = await db
-        .select()
-        .from(chatMessages)
-        .where(eq(chatMessages.conversationId, conversations[0].id))
-        .orderBy(chatMessages.createdAt);
-
-      messages.forEach((msg, idx) => {
-        const preview = msg.content.substring(0, 60);
-        console.log(`   ${idx + 1}. [${msg.role}] ${preview}...`);
-        if (msg.sources && msg.sources.length > 0) {
-          console.log(`      Sources: ${msg.sources.join(", ")}`);
-        }
-      });
-      console.log("");
-    }
-
-    // ============================================
-    // 4. Query Document Chunks
+    // 2. Query Document Chunks
     // ============================================
     console.log("📄 Document Embeddings:");
     const chunks = await db
@@ -100,7 +59,7 @@ async function testQueries() {
     }
 
     // ============================================
-    // 5. Statistics
+    // 3. Statistics
     // ============================================
     console.log("📊 Database Statistics:");
     
@@ -111,14 +70,8 @@ async function testQueries() {
     const [chunkCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(documentEmbeddings);
-    
-    const [messageCount] = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(chatMessages);
 
     console.log(`   • Total Users: ${userCount.count}`);
-    console.log(`   • Total Conversations: ${conversations.length}`);
-    console.log(`   • Total Messages: ${messageCount.count}`);
     console.log(`   • Total Document Chunks: ${chunkCount.count}`);
 
     console.log("\n" + "=".repeat(60));

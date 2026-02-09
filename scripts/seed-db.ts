@@ -3,9 +3,6 @@ import "dotenv/config";
 import { db, closeConnection } from "../src/db/index";
 import {
   users,
-  sessions,
-  chatConversations,
-  chatMessages,
   documentEmbeddings,
 } from "../src/db/schema";
 import fs from "fs";
@@ -39,40 +36,7 @@ async function seedDatabase() {
     console.log(`   ✅ Created user: ${testUser.email} (${testUser.id})\n`);
 
     // ============================================
-    // 2. Create Test Session
-    // ============================================
-    console.log("🔐 Creating test session...");
-    
-    const [testSession] = await db
-      .insert(sessions)
-      .values({
-        userId: testUser.id,
-        token: "test-session-token-12345",
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        ipAddress: "127.0.0.1",
-        userAgent: "Mozilla/5.0 (Test Browser)",
-      })
-      .returning();
-
-    console.log(`   ✅ Created session: ${testSession.token}\n`);
-
-    // ============================================
-    // 3. Create Test Conversation
-    // ============================================
-    console.log("💬 Creating test conversation...");
-    
-    const [conversation] = await db
-      .insert(chatConversations)
-      .values({
-        userId: testUser.id,
-        title: "JavaScript Closures Discussion",
-      })
-      .returning();
-
-    console.log(`   ✅ Created conversation: ${conversation.title}\n`);
-
-    // ============================================
-    // 4. Load Sample Chunks from Closures
+    // 2. Load Sample Chunks from Closures
     // ============================================
     console.log("📄 Loading sample document chunks...");
     
@@ -123,52 +87,12 @@ async function seedDatabase() {
     }
 
     // ============================================
-    // 5. Create Test Chat Messages
-    // ============================================
-    console.log("💬 Creating test chat messages...");
-    
-    const messages = await db
-      .insert(chatMessages)
-      .values([
-        {
-          conversationId: conversation.id,
-          role: "user",
-          content: "What are closures in JavaScript?",
-        },
-        {
-          conversationId: conversation.id,
-          role: "assistant",
-          content:
-            "A **closure** is the combination of a function bundled together with references to its surrounding state (the lexical environment). In JavaScript, closures are created every time a function is created, at function creation time.",
-          sources: ["closures_index_chunk_0", "closures_index_chunk_1"],
-        },
-        {
-          conversationId: conversation.id,
-          role: "user",
-          content: "Can you give me an example?",
-        },
-        {
-          conversationId: conversation.id,
-          role: "assistant",
-          content:
-            "Here's a simple example:\n\n```js\nfunction makeCounter() {\n  let count = 0;\n  return function() {\n    return count++;\n  };\n}\n\nconst counter = makeCounter();\nconsole.log(counter()); // 0\nconsole.log(counter()); // 1\n```\n\nThe inner function maintains access to `count` even after `makeCounter` has finished executing.",
-          sources: ["closures_index_chunk_2"],
-        },
-      ])
-      .returning();
-
-    console.log(`   ✅ Created ${messages.length} chat messages\n`);
-
-    // ============================================
-    // 6. Display Summary
+    // 3. Display Summary
     // ============================================
     console.log("=" .repeat(60));
     console.log("🎉 Database Seeding Complete!\n");
     console.log("📊 Summary:");
     console.log(`   • Users: 1`);
-    console.log(`   • Sessions: 1`);
-    console.log(`   • Conversations: 1`);
-    console.log(`   • Messages: ${messages.length}`);
     console.log(`   • Document Chunks: 5 (with mock embeddings)`);
     console.log("\n🔍 View in Drizzle Studio:");
     console.log("   npm run db:studio");

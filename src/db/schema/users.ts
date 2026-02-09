@@ -7,7 +7,7 @@ import {
   index,
 } from "drizzle-orm/pg-core";
 
-// Users table for authentication and tracking
+// Simple users table for basic authentication
 export const users = pgTable(
   "users",
   {
@@ -16,7 +16,7 @@ export const users = pgTable(
     name: text("name"),
     
     // Authentication
-    passwordHash: text("password_hash"), // For email/password auth
+    passwordHash: text("password_hash"),
     emailVerified: boolean("email_verified").default(false),
     
     // OAuth fields (optional)
@@ -34,80 +34,6 @@ export const users = pgTable(
   })
 );
 
-// User sessions table
-export const sessions = pgTable(
-  "sessions",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    
-    token: text("token").notNull().unique(),
-    expiresAt: timestamp("expires_at").notNull(),
-    
-    // Session metadata
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
-    
-    createdAt: timestamp("created_at").defaultNow(),
-  },
-  (table) => ({
-    tokenIdx: index("token_idx").on(table.token),
-    userIdIdx: index("user_id_idx").on(table.userId),
-  })
-);
-
-// User chat history
-export const chatConversations = pgTable(
-  "chat_conversations",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: uuid("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    
-    title: text("title"), // Auto-generated or user-provided
-    
-    createdAt: timestamp("created_at").defaultNow(),
-    updatedAt: timestamp("updated_at").defaultNow(),
-  },
-  (table) => ({
-    userIdIdx: index("conversation_user_id_idx").on(table.userId),
-  })
-);
-
-// Individual chat messages
-export const chatMessages = pgTable(
-  "chat_messages",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    conversationId: uuid("conversation_id")
-      .notNull()
-      .references(() => chatConversations.id, { onDelete: "cascade" }),
-    
-    role: text("role").notNull(), // 'user' | 'assistant'
-    content: text("content").notNull(),
-    
-    // Citations/sources used (for assistant messages)
-    sources: text("sources").array(), // Array of chunk IDs
-    
-    createdAt: timestamp("created_at").defaultNow(),
-  },
-  (table) => ({
-    conversationIdIdx: index("message_conversation_id_idx").on(table.conversationId),
-  })
-);
-
 // Type inference
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-
-export type Session = typeof sessions.$inferSelect;
-export type NewSession = typeof sessions.$inferInsert;
-
-export type ChatConversation = typeof chatConversations.$inferSelect;
-export type NewChatConversation = typeof chatConversations.$inferInsert;
-
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type NewChatMessage = typeof chatMessages.$inferInsert;
