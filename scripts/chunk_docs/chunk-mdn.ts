@@ -93,13 +93,16 @@ function calculateLineNumbers(
   const originalLines = originalText.split("\n");
   const chunkLines = chunkText.split("\n");
   
+  // Get the first non-empty line of the chunk for precise matching
+  const firstNonEmptyLine = chunkLines.find(line => line.trim().length > 0) || chunkText.substring(0, 50);
+  
   // Find where this chunk starts in the original text
-  const chunkStart = chunkText.substring(0, 100); // First 100 chars for matching
   let startLine = previousEndLine + 1;
   
   for (let i = previousEndLine; i < originalLines.length; i++) {
-    const lineContent = originalLines.slice(i, i + 5).join("\n");
-    if (lineContent.includes(chunkStart.trim())) {
+    // Match the first non-empty line precisely
+    if (originalLines[i].trim() === firstNonEmptyLine.trim() || 
+        originalLines[i].includes(firstNonEmptyLine.trim().substring(0, 50))) {
       startLine = i + 1; // 1-indexed
       break;
     }
@@ -135,10 +138,16 @@ function calculateFrontmatterOffset(originalContent: string, contentAfterFrontma
     }
   }
   
-  // If we found the closing delimiter, the content starts after it
-  // Add 2: +1 to convert from 0-indexed to 1-indexed, +1 to skip past the closing --- line
+  // If we found the closing delimiter, calculate the offset
+  // Content starts at closingDelimiterLine + 2 (1-indexed)
+  // But we need the OFFSET to add to 1-indexed content lines
+  // If content starts at line 8, and content line 1 should become file line 8,
+  // then offset is 7 (since 1 + 7 = 8)
   if (closingDelimiterLine !== -1) {
-    return closingDelimiterLine + 2;
+    // closingDelimiterLine is 0-indexed, so closing line number is closingDelimiterLine + 1
+    // Content starts one line after that, so contentStartsAtLine = closingDelimiterLine + 2
+    // Offset = contentStartsAtLine - 1 (to convert content line 1 to file line)
+    return closingDelimiterLine + 1;
   }
   
   return 0;
