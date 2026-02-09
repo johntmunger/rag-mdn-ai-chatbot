@@ -40,7 +40,7 @@ export default function Home() {
       id: generateId(),
       role: "user",
       content,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     };
 
     const updatedMessages = [...messages, userMessage];
@@ -74,7 +74,7 @@ export default function Home() {
         id: generateId(),
         role: "assistant",
         content: data.response,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         citations: data.citations || [],
       };
 
@@ -108,7 +108,7 @@ Could not connect to the RAG backend.
    \`\`\`bash
    npm run dev
    \`\`\``,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
       };
 
       setMessages([...currentMessages, assistantMessage]);
