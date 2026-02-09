@@ -6,11 +6,14 @@ import * as schema from "./schema";
 // Check for DATABASE_URL
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL is not set. Please add it to your .env file."
+    "DATABASE_URL is not set. Please add it to your .env file.\n\n" +
+    "Example for local Docker setup:\n" +
+    'DATABASE_URL="postgresql://example:example@localhost:5455/example"'
   );
 }
 
 // Create postgres connection
+// Default Docker connection: postgresql://example:example@localhost:5455/example
 const connectionString = process.env.DATABASE_URL;
 
 // For query purposes
