@@ -112,6 +112,7 @@ Could not connect to the RAG backend.
       };
 
       setMessages([...currentMessages, assistantMessage]);
+    }
   };
 
   const handleRegenerate = async (messageId: string) => {
