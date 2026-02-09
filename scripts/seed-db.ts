@@ -2,7 +2,8 @@
 import "dotenv/config";
 import { db, closeConnection } from "../src/db/index";
 import {
-  users,
+  conversations,
+  messages,
   documentEmbeddings,
 } from "../src/db/schema";
 import fs from "fs";
@@ -20,20 +21,18 @@ async function seedDatabase() {
 
   try {
     // ============================================
-    // 1. Create Test Users
+    // 1. Create Test Conversation
     // ============================================
-    console.log("👤 Creating test users...");
+    console.log("💬 Creating test conversation...");
     
-    const [testUser] = await db
-      .insert(users)
+    const [conversation] = await db
+      .insert(conversations)
       .values({
-        email: "test@example.com",
-        name: "Test User",
-        emailVerified: true,
+        title: "JavaScript Closures Discussion",
       })
       .returning();
 
-    console.log(`   ✅ Created user: ${testUser.email} (${testUser.id})\n`);
+    console.log(`   ✅ Created conversation: ${conversation.title}\n`);
 
     // ============================================
     // 2. Load Sample Chunks from Closures
@@ -87,12 +86,50 @@ async function seedDatabase() {
     }
 
     // ============================================
-    // 3. Display Summary
+    // 3. Create Test Chat Messages
+    // ============================================
+    console.log("💬 Creating test chat messages...");
+    
+    const chatMessages = await db
+      .insert(messages)
+      .values([
+        {
+          conversationId: conversation.id,
+          role: "user",
+          content: "What are closures in JavaScript?",
+        },
+        {
+          conversationId: conversation.id,
+          role: "assistant",
+          content:
+            "A **closure** is the combination of a function bundled together with references to its surrounding state (the **lexical environment**). In JavaScript, closures are created every time a function is created, at function creation time.",
+          sources: ["closures_index_chunk_0", "closures_index_chunk_1"],
+        },
+        {
+          conversationId: conversation.id,
+          role: "user",
+          content: "Can you give me an example?",
+        },
+        {
+          conversationId: conversation.id,
+          role: "assistant",
+          content:
+            "Here's a simple example:\n\n```js\nfunction makeCounter() {\n  let count = 0;\n  return function() {\n    return count++;\n  };\n}\n\nconst counter = makeCounter();\nconsole.log(counter()); // 0\nconsole.log(counter()); // 1\n```\n\nThe inner function maintains access to `count` even after `makeCounter` has finished executing.",
+          sources: ["closures_index_chunk_2"],
+        },
+      ])
+      .returning();
+
+    console.log(`   ✅ Created ${chatMessages.length} chat messages\n`);
+
+    // ============================================
+    // 4. Display Summary
     // ============================================
     console.log("=" .repeat(60));
     console.log("🎉 Database Seeding Complete!\n");
     console.log("📊 Summary:");
-    console.log(`   • Users: 1`);
+    console.log(`   • Conversations: 1`);
+    console.log(`   • Messages: ${chatMessages.length}`);
     console.log(`   • Document Chunks: 5 (with mock embeddings)`);
     console.log("\n🔍 View in Drizzle Studio:");
     console.log("   npm run db:studio");

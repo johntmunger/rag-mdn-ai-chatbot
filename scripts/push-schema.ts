@@ -10,29 +10,38 @@ async function pushSchema() {
   console.log("🚀 Creating database schema...\n");
 
   try {
-    // Create users table
-    console.log("📋 Creating users table...");
+    // Create conversations table
+    console.log("📋 Creating conversations table...");
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS conversations (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        email TEXT NOT NULL UNIQUE,
-        name TEXT,
-        password_hash TEXT,
-        email_verified BOOLEAN DEFAULT false,
-        provider TEXT,
-        provider_id TEXT,
+        title TEXT,
         created_at TIMESTAMP DEFAULT now(),
-        last_login_at TIMESTAMP,
         updated_at TIMESTAMP DEFAULT now()
       )
     `);
-    console.log("   ✅ users table created\n");
+    console.log("   ✅ conversations table created\n");
 
-    // Create indexes for users
-    console.log("📋 Creating users indexes...");
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS email_idx ON users(email)`);
-    await db.execute(sql`CREATE INDEX IF NOT EXISTS provider_idx ON users(provider, provider_id)`);
-    console.log("   ✅ users indexes created\n");
+    // Create messages table
+    console.log("📋 Creating messages table...");
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS messages (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+        role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+        content TEXT NOT NULL,
+        sources TEXT[],
+        created_at TIMESTAMP DEFAULT now()
+      )
+    `);
+    console.log("   ✅ messages table created\n");
+
+    // Create indexes for conversations
+    console.log("📋 Creating conversation indexes...");
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS conversation_created_at_idx ON conversations(created_at)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS message_conversation_id_idx ON messages(conversation_id)`);
+    await db.execute(sql`CREATE INDEX IF NOT EXISTS message_role_idx ON messages(role)`);
+    console.log("   ✅ conversation indexes created\n");
 
     // Create document_embeddings table
     console.log("📋 Creating document_embeddings table...");
@@ -73,7 +82,8 @@ async function pushSchema() {
     console.log("=" .repeat(60));
     console.log("✅ Schema created successfully!\n");
     console.log("Tables:");
-    console.log("  • users");
+    console.log("  • conversations");
+    console.log("  • messages");
     console.log("  • document_embeddings\n");
     console.log("Next steps:");
     console.log("  npm run db:seed    # Populate with test data");

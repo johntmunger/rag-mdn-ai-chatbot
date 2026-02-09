@@ -2,10 +2,11 @@
 import "dotenv/config";
 import { db, closeConnection } from "../src/db/index";
 import {
-  users,
+  conversations,
+  messages,
   documentEmbeddings,
 } from "../src/db/schema";
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 /**
  * Test database queries and display results
@@ -15,22 +16,46 @@ async function testQueries() {
 
   try {
     // ============================================
-    // 1. Query Users
+    // 1. Query Conversations
     // ============================================
-    console.log("👥 Users:");
-    const allUsers = await db.select().from(users);
+    console.log("💬 Conversations:");
+    const allConversations = await db
+      .select()
+      .from(conversations)
+      .orderBy(conversations.createdAt);
     
-    if (allUsers.length === 0) {
-      console.log("   No users found. Run 'npm run db:seed' first.\n");
+    if (allConversations.length === 0) {
+      console.log("   No conversations found. Run 'npm run db:seed' first.\n");
     } else {
-      allUsers.forEach((user) => {
-        console.log(`   • ${user.name} (${user.email})`);
+      allConversations.forEach((conv) => {
+        console.log(`   • ${conv.title || "Untitled"} (${conv.id})`);
       });
       console.log("");
     }
 
     // ============================================
-    // 2. Query Document Chunks
+    // 2. Query Messages
+    // ============================================
+    if (allConversations.length > 0) {
+      console.log("💬 Messages in first conversation:");
+      const conversationMessages = await db
+        .select()
+        .from(messages)
+        .where(eq(messages.conversationId, allConversations[0].id))
+        .orderBy(messages.createdAt);
+
+      conversationMessages.forEach((msg, idx) => {
+        const preview = msg.content.substring(0, 60);
+        console.log(`   ${idx + 1}. [${msg.role}] ${preview}...`);
+        if (msg.sources && msg.sources.length > 0) {
+          console.log(`      Sources: ${msg.sources.join(", ")}`);
+        }
+      });
+      console.log("");
+    }
+
+    // ============================================
+    // 3. Query Document Chunks
     // ============================================
     console.log("📄 Document Embeddings:");
     const chunks = await db
@@ -59,19 +84,24 @@ async function testQueries() {
     }
 
     // ============================================
-    // 3. Statistics
+    // 4. Statistics
     // ============================================
     console.log("📊 Database Statistics:");
     
-    const [userCount] = await db
+    const [conversationCount] = await db
       .select({ count: sql<number>`count(*)` })
-      .from(users);
+      .from(conversations);
+    
+    const [messageCount] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(messages);
     
     const [chunkCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(documentEmbeddings);
 
-    console.log(`   • Total Users: ${userCount.count}`);
+    console.log(`   • Total Conversations: ${conversationCount.count}`);
+    console.log(`   • Total Messages: ${messageCount.count}`);
     console.log(`   • Total Document Chunks: ${chunkCount.count}`);
 
     console.log("\n" + "=".repeat(60));
