@@ -6,7 +6,7 @@ import {
   messages,
   documentEmbeddings,
 } from "../src/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { sql, desc } from "drizzle-orm";
 
 /**
  * Test database queries and display results
@@ -22,13 +22,13 @@ async function testQueries() {
     const allConversations = await db
       .select()
       .from(conversations)
-      .orderBy(conversations.createdAt);
+      .orderBy(desc(conversations.createdAt));
     
     if (allConversations.length === 0) {
       console.log("   No conversations found. Run 'npm run db:seed' first.\n");
     } else {
       allConversations.forEach((conv) => {
-        console.log(`   • ${conv.title || "Untitled"} (${conv.id})`);
+        console.log(`   • ${conv.title || "Untitled"}`);
       });
       console.log("");
     }
@@ -38,13 +38,13 @@ async function testQueries() {
     // ============================================
     if (allConversations.length > 0) {
       console.log("💬 Messages in first conversation:");
-      const conversationMessages = await db
+      const chatMessages = await db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, allConversations[0].id))
+        .where(sql`${messages.conversationId} = ${allConversations[0].id}`)
         .orderBy(messages.createdAt);
 
-      conversationMessages.forEach((msg, idx) => {
+      chatMessages.forEach((msg, idx) => {
         const preview = msg.content.substring(0, 60);
         console.log(`   ${idx + 1}. [${msg.role}] ${preview}...`);
         if (msg.sources && msg.sources.length > 0) {
@@ -88,11 +88,11 @@ async function testQueries() {
     // ============================================
     console.log("📊 Database Statistics:");
     
-    const [conversationCount] = await db
+    const [convCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(conversations);
     
-    const [messageCount] = await db
+    const [msgCount] = await db
       .select({ count: sql<number>`count(*)` })
       .from(messages);
     
@@ -100,8 +100,8 @@ async function testQueries() {
       .select({ count: sql<number>`count(*)` })
       .from(documentEmbeddings);
 
-    console.log(`   • Total Conversations: ${conversationCount.count}`);
-    console.log(`   • Total Messages: ${messageCount.count}`);
+    console.log(`   • Total Conversations: ${convCount.count}`);
+    console.log(`   • Total Messages: ${msgCount.count}`);
     console.log(`   • Total Document Chunks: ${chunkCount.count}`);
 
     console.log("\n" + "=".repeat(60));

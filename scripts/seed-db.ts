@@ -32,7 +32,7 @@ async function seedDatabase() {
       })
       .returning();
 
-    console.log(`   ✅ Created conversation: ${conversation.title}\n`);
+    console.log(`   ✅ Created conversation: ${conversation.title} (${conversation.id})\n`);
 
     // ============================================
     // 2. Load Sample Chunks from Closures
@@ -102,7 +102,7 @@ async function seedDatabase() {
           conversationId: conversation.id,
           role: "assistant",
           content:
-            "A **closure** is the combination of a function bundled together with references to its surrounding state (the **lexical environment**). In JavaScript, closures are created every time a function is created, at function creation time.",
+            "A **closure** is the combination of a function bundled together with references to its surrounding state (the lexical environment). In other words, a closure gives a function access to its outer scope. In JavaScript, closures are created every time a function is created, at function creation time.",
           sources: ["closures_index_chunk_0", "closures_index_chunk_1"],
         },
         {
@@ -120,7 +120,7 @@ async function seedDatabase() {
       ])
       .returning();
 
-    console.log(`   ✅ Created ${chatMessages.length} chat messages\n`);
+    console.log(`   ✅ Created ${chatMessages.length} messages\n`);
 
     // ============================================
     // 4. Display Summary
