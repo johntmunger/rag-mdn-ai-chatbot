@@ -53,74 +53,65 @@ export default function Home() {
   };
 
   const simulateAIResponse = async (currentMessages: Message[]) => {
-    // Simulate delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Get the last user message
+      const lastUserMessage = currentMessages[currentMessages.length - 1];
+      
+      // Call RAG API
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: lastUserMessage.content }),
+      });
 
-    const assistantMessage: Message = {
-      id: generateId(),
-      role: "assistant",
-      content: `# Understanding Your Question
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
 
-This is a demo response to illustrate the UI. In a real implementation, this would be connected to an AI backend with RAG capabilities using MDN documentation.
+      const data = await response.json();
 
-## Code Example
+      const assistantMessage: Message = {
+        id: generateId(),
+        role: "assistant",
+        content: data.response,
+        timestamp: new Date(),
+        citations: data.citations || [],
+      };
 
-Here's a JavaScript example:
+      setMessages([...currentMessages, assistantMessage]);
+    } catch (error) {
+      console.error("Error calling API:", error);
+      
+      // Fallback error message
+      const assistantMessage: Message = {
+        id: generateId(),
+        role: "assistant",
+        content: `# ⚠️ API Connection Error
 
-\`\`\`javascript
-// Example: Using async/await
-async function fetchData(url) {
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    throw error;
-  }
-}
+Could not connect to the RAG backend. 
 
-// Usage
-fetchData('https://api.example.com/data')
-  .then(data => console.log(data))
-  .catch(error => console.error(error));
-\`\`\`
+**Error:** ${error instanceof Error ? error.message : String(error)}
 
-## Key Points
+## Troubleshooting Steps
 
-1. **Async/Await**: Modern syntax for handling promises
-2. **Error Handling**: Use try/catch blocks
-3. **Return Values**: Always return or throw in async functions
+1. Make sure the database is running:
+   \`\`\`bash
+   npm run db:status
+   \`\`\`
 
-## Common Pitfalls
+2. Check if chunks are loaded:
+   \`\`\`bash
+   npm run db:test
+   \`\`\`
 
-- Forgetting to use \`await\` keyword
-- Not handling errors properly
-- Mixing callbacks with promises
+3. Restart the development server:
+   \`\`\`bash
+   npm run dev
+   \`\`\``,
+        timestamp: new Date(),
+      };
 
-This answer demonstrates the code-first approach with syntax highlighting, line numbers, and interactive features.`,
-      timestamp: new Date(),
-      citations: [
-        {
-          id: "1",
-          mdnTitle: "async function - JavaScript | MDN",
-          mdnUrl:
-            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function",
-          excerpt:
-            "The async function declaration defines an asynchronous function that returns an AsyncFunction object...",
-        },
-        {
-          id: "2",
-          mdnTitle: "await - JavaScript | MDN",
-          mdnUrl:
-            "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await",
-          excerpt:
-            "The await operator is used to wait for a Promise to resolve...",
-        },
-      ],
-    };
-
-    setMessages([...currentMessages, assistantMessage]);
+      setMessages([...currentMessages, assistantMessage]);
   };
 
   const handleRegenerate = async (messageId: string) => {
