@@ -418,7 +418,7 @@ export async function searchDocumentation(
       1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector) as similarity
     FROM document_embeddings
     ${whereClause}
-    ${conditions.length > 0 ? sql`AND` : sql``}
+    ${conditions.length > 0 ? sql`AND` : sql`WHERE`}
     embedding IS NOT NULL
     ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
     LIMIT ${limit}
