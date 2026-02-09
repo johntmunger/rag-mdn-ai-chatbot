@@ -232,9 +232,13 @@ Examples:
   const fromEmbedded = args.includes("--from-embedded") || args.includes("-e");
   const useMockEmbeddings =
     !fromEmbedded && !args.includes("--real") && !args.includes("-r");
-  const batchSize = parseInt(
-    args[args.indexOf("--batch") + 1] || args[args.indexOf("-b") + 1] || "100"
-  );
+
+  const batchIdx = args.indexOf("--batch");
+  const batchShortIdx = args.indexOf("-b");
+  const batchArg =
+    (batchIdx !== -1 ? args[batchIdx + 1] : null) ||
+    (batchShortIdx !== -1 ? args[batchShortIdx + 1] : null);
+  const batchSize = Math.max(1, parseInt(batchArg || "100", 10) || 100);
 
   if (
     !fromEmbedded &&
