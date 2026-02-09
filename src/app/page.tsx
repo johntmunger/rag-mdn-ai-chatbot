@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TopBar } from "@/components/TopBar";
 import { EmptyState } from "@/components/EmptyState";
 import { MessageList } from "@/components/MessageList";
@@ -33,6 +33,12 @@ export default function Home() {
     defaultSettings
   );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent hydration errors by only rendering after mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSendMessage = async (content: string) => {
     // Add user message
@@ -172,6 +178,28 @@ Could not connect to the RAG backend.
           "Give a shorter example",
         ]
       : [];
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return (
+      <div className="h-screen flex flex-col bg-[var(--background)]">
+        <TopBar
+          onSettingsClick={() => setIsSettingsOpen(true)}
+          onDownload={handleDownload}
+          onRestart={handleRestart}
+        />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <EmptyState onExampleClick={handleSendMessage} />
+          <InputBar
+            onSend={handleSendMessage}
+            disabled={false}
+            suggestions={[]}
+            placeholder="Ask about JavaScript, CSS, HTML, Web APIs, or any web development topic..."
+          />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-[var(--background)]">
