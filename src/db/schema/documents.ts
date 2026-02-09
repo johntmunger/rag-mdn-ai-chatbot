@@ -28,7 +28,7 @@ const vector = customType<{
   },
 });
 
-// Document embeddings table
+// Document embeddings table for RAG
 export const documentEmbeddings = pgTable(
   "document_embeddings",
   {
@@ -59,17 +59,17 @@ export const documentEmbeddings = pgTable(
     updatedAt: timestamp("updated_at").defaultNow(),
   },
   (table) => ({
-    // Vector similarity index
+    // Vector similarity index (requires pgvector extension)
     embeddingIdx: index("embedding_idx").using(
       "ivfflat",
-      table.embedding.op("vector_cosine_ops")
+      sql`${table.embedding} vector_cosine_ops`
     ),
-    // Metadata indexes
+    // Metadata indexes for filtering
     sourceIdx: index("source_idx").on(table.source),
     slugIdx: index("slug_idx").on(table.slug),
     pageTypeIdx: index("page_type_idx").on(table.pageType),
     headingIdx: index("heading_idx").on(table.heading),
-    // GIN index for JSONB
+    // GIN index for JSONB metadata
     metadataIdx: index("metadata_idx").using("gin", table.metadata),
   })
 );

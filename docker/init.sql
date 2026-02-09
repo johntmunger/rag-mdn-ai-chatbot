@@ -1,7 +1,84 @@
--- Initialize pgvector extension and create tables for RAG
+-- Initialize database with pgvector extension and all tables
 
--- Enable pgvector extension
+-- Enable required extensions
 CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================
+-- USERS SCHEMA
+-- ============================================
+
+-- Users table for authentication
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email TEXT NOT NULL UNIQUE,
+    name TEXT,
+    
+    -- Authentication
+    password_hash TEXT,
+    email_verified BOOLEAN DEFAULT FALSE,
+    
+    -- OAuth fields
+    provider TEXT,
+    provider_id TEXT,
+    
+    -- Timestamps
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Sessions table
+CREATE TABLE IF NOT EXISTS sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    token TEXT NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    
+    -- Session metadata
+    ip_address TEXT,
+    user_agent TEXT,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Chat conversations
+CREATE TABLE IF NOT EXISTS chat_conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    
+    title TEXT,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Chat messages
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    conversation_id UUID NOT NULL REFERENCES chat_conversations(id) ON DELETE CASCADE,
+    
+    role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
+    content TEXT NOT NULL,
+    
+    -- Citations (array of chunk IDs)
+    sources TEXT[],
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for users schema
+CREATE INDEX IF NOT EXISTS email_idx ON users(email);
+CREATE INDEX IF NOT EXISTS provider_idx ON users(provider, provider_id);
+CREATE INDEX IF NOT EXISTS token_idx ON sessions(token);
+CREATE INDEX IF NOT EXISTS user_id_session_idx ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS conversation_user_id_idx ON chat_conversations(user_id);
+CREATE INDEX IF NOT EXISTS message_conversation_id_idx ON chat_messages(conversation_id);
+
+-- ============================================
+-- DOCUMENTS SCHEMA (RAG)
+-- ============================================
 
 -- Create embeddings table for storing document chunks with vectors
 CREATE TABLE IF NOT EXISTS document_embeddings (
