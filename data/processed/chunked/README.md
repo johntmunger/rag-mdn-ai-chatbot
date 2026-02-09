@@ -35,6 +35,8 @@ Each chunk includes:
 {
   "id": "functions_index_chunk_0",
   "text": "Chunk content...",
+  "characterCount": 823,
+  "wordCount": 142,
   "metadata": {
     "source": "functions/index.md",
     "chunkIndex": 0,
@@ -50,10 +52,17 @@ Each chunk includes:
 }
 ```
 
-## Metadata Fields
+## Chunk Structure
 
-Each chunk preserves:
+Each chunk contains:
 
+**Root Level (Direct Properties):**
+- **id**: Unique chunk identifier
+- **text**: The actual chunk content
+- **characterCount**: Number of characters in chunk text
+- **wordCount**: Number of words in chunk text
+
+**Metadata (Contextual Information):**
 - **source**: Original file path
 - **chunkIndex**: Position in document (0-indexed)
 - **startLine/endLine**: Exact line numbers in source
@@ -90,11 +99,18 @@ const functionDeclarations = chunks.filter(
 );
 ```
 
-### Accessing Metadata
+### Accessing Chunk Properties
 
 ```typescript
 const chunk = chunks[0];
 
+// Direct properties
+console.log(`ID: ${chunk.id}`);
+console.log(`Characters: ${chunk.characterCount}`);
+console.log(`Words: ${chunk.wordCount}`);
+console.log(`Text: ${chunk.text.substring(0, 100)}...`);
+
+// Contextual metadata
 console.log(`Source: ${chunk.metadata.source}`);
 console.log(`Lines: ${chunk.metadata.startLine}-${chunk.metadata.endLine}`);
 console.log(`Heading: ${chunk.metadata.heading}`);

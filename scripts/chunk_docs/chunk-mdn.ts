@@ -26,6 +26,8 @@ interface ChunkMetadata {
 interface Chunk {
   id: string;
   text: string;
+  characterCount: number;
+  wordCount: number;
   metadata: ChunkMetadata;
 }
 
@@ -109,6 +111,40 @@ function calculateLineNumbers(
 }
 
 /**
+ * Calculate the number of lines the frontmatter occupies in the original file
+ */
+function calculateFrontmatterOffset(originalContent: string, contentAfterFrontmatter: string): number {
+  // If no frontmatter was extracted, offset is 0
+  if (originalContent === contentAfterFrontmatter) {
+    return 0;
+  }
+  
+  // Find the closing frontmatter delimiter
+  const lines = originalContent.split('\n');
+  let closingDelimiterLine = -1;
+  
+  // Look for the second "---" (closing delimiter)
+  let delimiterCount = 0;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim() === '---') {
+      delimiterCount++;
+      if (delimiterCount === 2) {
+        closingDelimiterLine = i;
+        break;
+      }
+    }
+  }
+  
+  // If we found the closing delimiter, the content starts after it
+  // Add 2: +1 to convert from 0-indexed to 1-indexed, +1 to skip past the closing --- line
+  if (closingDelimiterLine !== -1) {
+    return closingDelimiterLine + 2;
+  }
+  
+  return 0;
+}
+
+/**
  * Chunk a single markdown file with document structure awareness
  */
 async function chunkMarkdownFile(
@@ -119,7 +155,15 @@ async function chunkMarkdownFile(
   const content = fs.readFileSync(filePath, "utf-8");
   
   // Parse frontmatter
-  const { data: frontmatter, content: markdownContent } = matter(content);
+  const { data: frontmatter, content: rawMarkdownContent } = matter(content);
+  
+  // Trim leading blank lines from the content (gray-matter often includes them)
+  const leadingBlankLines = (rawMarkdownContent.match(/^\n+/) || [''])[0].length;
+  const markdownContent = rawMarkdownContent.replace(/^\n+/, '');
+  
+  // Calculate frontmatter offset for accurate line numbers
+  // Add leadingBlankLines to account for the blank lines we trimmed
+  const frontmatterOffset = calculateFrontmatterOffset(content, rawMarkdownContent) + leadingBlankLines;
   
   // Create splitter with markdown-aware separators
   const splitter = new RecursiveCharacterTextSplitter({
@@ -149,15 +193,19 @@ async function chunkMarkdownFile(
     const doc = docs[i];
     const chunkText = doc.pageContent;
     
-    // Calculate line numbers
-    const { startLine, endLine } = calculateLineNumbers(
+    // Calculate line numbers (relative to content without frontmatter)
+    const { startLine: contentStartLine, endLine: contentEndLine } = calculateLineNumbers(
       markdownContent,
       chunkText,
       previousEndLine
     );
     
-    // Find heading context
-    const headingContext = findHeadingContext(contentLines, startLine - 1);
+    // Adjust line numbers to account for frontmatter in original file
+    const startLine = contentStartLine + frontmatterOffset;
+    const endLine = contentEndLine + frontmatterOffset;
+    
+    // Find heading context (use content-relative line number)
+    const headingContext = findHeadingContext(contentLines, contentStartLine - 1);
     
     // If no heading found by looking back, try extracting from chunk itself
     const chunkHeading = extractHeading(chunkText);
@@ -169,7 +217,11 @@ async function chunkMarkdownFile(
       .replace(/\//g, "_")
       .replace(/\.md$/, "")}_chunk_${i}`;
     
-    // Build metadata
+    // Calculate character and word counts
+    const characterCount = chunkText.length;
+    const wordCount = chunkText.trim().split(/\s+/).length;
+    
+    // Build metadata (contextual information)
     const metadata: ChunkMetadata = {
       source: relativePath,
       chunkIndex: i,
@@ -184,13 +236,17 @@ async function chunkMarkdownFile(
       ...frontmatter, // Include all frontmatter
     };
     
+    // Create chunk with counts at root level
     chunks.push({
       id: chunkId,
       text: chunkText,
+      characterCount,
+      wordCount,
       metadata,
     });
     
-    previousEndLine = endLine;
+    // Update previous end line (use content-relative for next iteration)
+    previousEndLine = contentEndLine;
   }
   
   return chunks;

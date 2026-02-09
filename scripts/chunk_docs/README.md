@@ -17,21 +17,27 @@ This directory contains scripts that recursively process markdown documentation,
 
 ### Rich Metadata
 
-Each chunk includes comprehensive metadata:
+Each chunk structure:
 
 ```typescript
 {
-  source: string;           // Relative path to source file
-  chunkIndex: number;       // Position in the document
-  startLine: number;        // Starting line number (1-indexed)
-  endLine: number;          // Ending line number
-  heading: string;          // Current section heading
-  headingLevel: number;     // Heading level (1-6)
-  title: string;            // Document title from frontmatter
-  slug: string;             // MDN slug
-  pageType: string;         // Page type from frontmatter
-  sidebar: string;          // Sidebar reference
-  // ... all other frontmatter fields
+  id: string;               // Unique chunk identifier
+  text: string;             // Chunk content
+  characterCount: number;   // Number of characters in chunk text
+  wordCount: number;        // Number of words in chunk text
+  metadata: {
+    source: string;         // Relative path to source file
+    chunkIndex: number;     // Position in the document
+    startLine: number;      // Starting line number (1-indexed)
+    endLine: number;        // Ending line number
+    heading: string;        // Current section heading
+    headingLevel: number;   // Heading level (1-6)
+    title: string;          // Document title from frontmatter
+    slug: string;           // MDN slug
+    pageType: string;       // Page type from frontmatter
+    sidebar: string;        // Sidebar reference
+    // ... all other frontmatter fields
+  }
 }
 ```
 
@@ -98,6 +104,8 @@ Each source file generates a JSON file with this structure:
     {
       "id": "functions_index_chunk_0",
       "text": "# Functions\n\nFunctions are one of...",
+      "characterCount": 823,
+      "wordCount": 142,
       "metadata": {
         "source": "functions/index.md",
         "chunkIndex": 0,
