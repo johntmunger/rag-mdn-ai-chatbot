@@ -34,17 +34,7 @@ async function searchSimilarChunks(
   queryEmbedding: number[],
   limit: number = 5
 ) {
-  const results = await db.execute<{
-    id: string;
-    text: string;
-    source: string;
-    heading: string;
-    title: string;
-    slug: string;
-    start_line: number;
-    end_line: number;
-    similarity: number;
-  }>(sql`
+  const results = await db.execute(sql`
     SELECT 
       id,
       text,
@@ -61,7 +51,8 @@ async function searchSimilarChunks(
     LIMIT ${limit}
   `);
 
-  return results.rows;
+  // Return the rows array directly
+  return Array.from(results as any);
 }
 
 /**
