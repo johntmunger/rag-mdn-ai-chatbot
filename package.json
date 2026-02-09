@@ -11,6 +11,7 @@
     "parse": "npm run parse:pdf",
     "chunk": "tsx scripts/chunk_docs/chunk-mdn.ts",
     "chunk:help": "tsx scripts/chunk_docs/chunk-mdn.ts --help",
+    "db:check": "bash scripts/check-docker.sh",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
