@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  db:
+    # PostgreSQL 16 with pgvector extension pre-installed
+    image: pgvector/pgvector:pg16
+    restart: always
+    container_name: rag-mdn-postgres
+    
+    # Set shared memory limit when using docker compose
+    shm_size: 128mb
+    
+    ports:
+      # Expose on port 5455 (host:container)
+      # Using 5455 to avoid conflicts with local postgres on 5432
+      - "5455:5432"
+    
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: example
+      POSTGRES_DB: example
+    
+    volumes:
+      # Persist database data
+      - postgres_data:/var/lib/postgresql/data
+      # Mount init script (runs on first startup)
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U example"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
