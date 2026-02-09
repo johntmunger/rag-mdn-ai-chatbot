@@ -3,28 +3,40 @@ import { db } from "@/db";
 import { documentEmbeddings } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import OpenAI from "openai";
+import { createVoyage } from "voyage-ai-provider";
+import { embed } from "ai";
 
-// Initialize OpenAI (will use mock embeddings if no API key)
+// Initialize OpenAI for chat completions
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
+// Initialize Voyage for query embeddings (matches document embeddings)
+const voyageApiKey =
+  process.env.VOYAGEAI_API_KEY || process.env.VOYAGE_API_KEY;
+const voyage = voyageApiKey ? createVoyage({ apiKey: voyageApiKey }) : null;
+const voyageEmbeddingModel = voyage
+  ? voyage.textEmbeddingModel("voyage-3.5-lite")
+  : null;
+
 /**
- * Generate embedding for a query
+ * Generate embedding for a query (Voyage for RAG, mock fallback)
  */
 async function generateQueryEmbedding(query: string): Promise<number[]> {
-  if (!openai) {
-    // Return mock embedding for testing without API key
-    console.warn("⚠️  No OPENAI_API_KEY found, using mock embedding");
-    return Array.from({ length: 1536 }, () => Math.random() * 2 - 1);
+  if (voyageEmbeddingModel) {
+    const { embedding } = await embed({
+      model: voyageEmbeddingModel,
+      value: query,
+      providerOptions: {
+        voyage: { inputType: "query", outputDimension: 1024 },
+      },
+    });
+    return embedding;
   }
 
-  const response = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input: query,
-  });
-
-  return response.data[0].embedding;
+  // Fallback: mock embedding when no Voyage API key
+  console.warn("⚠️  No VOYAGEAI_API_KEY found, using mock embedding");
+  return Array.from({ length: 1024 }, () => Math.random() * 2 - 1);
 }
 
 /**

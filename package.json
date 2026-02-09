@@ -11,6 +11,7 @@
     "parse": "npm run parse:pdf",
     "chunk": "tsx scripts/chunk_docs/chunk-mdn.ts",
     "chunk:help": "tsx scripts/chunk_docs/chunk-mdn.ts --help",
+    "embed": "tsx scripts/generate-embeddings.ts",
     "ingest": "tsx scripts/ingest-chunks.ts",
     "ingest:help": "tsx scripts/ingest-chunks.ts --help",
     "db:check": "bash scripts/check-docker.sh",
@@ -34,6 +35,7 @@
     "@langchain/textsplitters": "^1.0.1",
     "@llamaindex/cloud": "^4.1.3",
     "@llamaindex/llama-cloud": "^1.4.0",
+    "ai": "^6.0.78",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.4",
     "drizzle-kit": "^0.31.9",
@@ -50,7 +52,8 @@
     "react-markdown": "^10.1.0",
     "rehype-highlight": "^7.0.2",
     "rehype-raw": "^7.0.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "voyage-ai-provider": "^3.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -9,13 +9,13 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-// Custom vector type for pgvector (1536 dimensions for OpenAI text-embedding-3-small)
+// Custom vector type for pgvector (1024 dimensions for Voyage AI)
 const vector = customType<{
   data: number[];
   driverData: string;
 }>({
   dataType() {
-    return "vector(1536)";
+    return "vector(1024)";
   },
   toDriver(value: number[]): string {
     return JSON.stringify(value);

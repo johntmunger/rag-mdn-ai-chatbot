@@ -51,7 +51,7 @@ async function pushSchema() {
         text TEXT NOT NULL,
         character_count INTEGER NOT NULL,
         word_count INTEGER NOT NULL,
-        embedding vector(1536),
+        embedding vector(1024),
         metadata JSONB NOT NULL,
         source TEXT NOT NULL,
         chunk_index INTEGER NOT NULL,

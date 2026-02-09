@@ -14,6 +14,7 @@ interface ChunkData {
   text: string;
   characterCount: number;
   wordCount: number;
+  embedding?: number[];
   metadata: {
     source: string;
     chunkIndex: number;
@@ -40,25 +41,40 @@ interface Stats {
  * Generate mock embedding vector
  */
 function generateMockEmbedding(): number[] {
-  return Array.from({ length: 1536 }, () => Math.random() * 2 - 1);
+  return Array.from({ length: 1024 }, () => Math.random() * 2 - 1);
 }
 
 /**
  * Process all chunked JSON files and insert into database
  */
-async function ingestChunks(options: { useMockEmbeddings: boolean; batchSize: number }) {
-  const { useMockEmbeddings, batchSize } = options;
-  
+async function ingestChunks(options: {
+  useMockEmbeddings: boolean;
+  batchSize: number;
+  fromEmbedded: boolean;
+}) {
+  const { useMockEmbeddings, batchSize, fromEmbedded } = options;
+
+  const chunksDir = path.join(
+    __dirname,
+    "../data/processed",
+    fromEmbedded ? "embedded" : "chunked"
+  );
+
   console.log("🚀 Starting Chunk Ingestion\n");
   console.log("Configuration:");
-  console.log(`  Mode: ${useMockEmbeddings ? "Mock Embeddings" : "Real Embeddings (OpenAI)"}`);
+  console.log(
+    `  Mode: ${fromEmbedded ? "From Embedded (Voyage)" : useMockEmbeddings ? "Mock Embeddings" : "Real Embeddings (OpenAI)"}`
+  );
+  console.log(`  Source: ${chunksDir}`);
   console.log(`  Batch Size: ${batchSize} chunks per batch\n`);
-
-  const chunksDir = path.join(__dirname, "../data/processed/chunked");
   
   if (!fs.existsSync(chunksDir)) {
-    console.error(`❌ Chunks directory not found: ${chunksDir}`);
-    console.error("Run 'npm run chunk' first to generate chunks");
+    console.error(`❌ Directory not found: ${chunksDir}`);
+    if (fromEmbedded) {
+      console.error("Run 'npm run embed' first to generate embedded chunks");
+    } else {
+      console.error("Run 'npm run chunk' first to generate chunks");
+    }
     process.exit(1);
   }
 
@@ -78,7 +94,11 @@ async function ingestChunks(options: { useMockEmbeddings: boolean; batchSize: nu
 
   if (jsonFiles.length === 0) {
     console.error("❌ No chunk files found!");
-    console.error("Run 'npm run chunk' to generate chunks");
+    if (fromEmbedded) {
+      console.error("Run 'npm run embed' first to generate embedded chunks");
+    } else {
+      console.error("Run 'npm run chunk' to generate chunks");
+    }
     process.exit(1);
   }
 
@@ -117,7 +137,12 @@ async function ingestChunks(options: { useMockEmbeddings: boolean; batchSize: nu
         text: chunk.text,
         characterCount: chunk.characterCount,
         wordCount: chunk.wordCount,
-        embedding: useMockEmbeddings ? generateMockEmbedding() : null,
+        embedding:
+          fromEmbedded && chunk.embedding
+            ? chunk.embedding
+            : useMockEmbeddings
+              ? generateMockEmbedding()
+              : null,
         metadata: chunk.metadata,
         source: chunk.metadata.source,
         chunkIndex: chunk.metadata.chunkIndex,
@@ -165,9 +190,9 @@ async function ingestChunks(options: { useMockEmbeddings: boolean; batchSize: nu
   console.log("\n🔍 Test queries:");
   console.log("   npm run db:test");
   
-  if (useMockEmbeddings) {
+  if (useMockEmbeddings && !fromEmbedded) {
     console.log("\n💡 Note: Using mock embeddings for testing");
-    console.log("   Run with --real flag to use OpenAI embeddings (requires API key)");
+    console.log("   Run 'npm run embed' then 'npm run ingest -- --from-embedded' for Voyage embeddings");
   }
   
   console.log("=" .repeat(60));
@@ -190,24 +215,32 @@ Usage:
   npm run ingest -- --batch 50  # Custom batch size
 
 Options:
-  --real, -r      Use real OpenAI embeddings (requires OPENAI_API_KEY in .env)
-  --batch, -b     Batch size (default: 100)
-  --help, -h      Show this help message
+  --from-embedded, -e  Use pre-computed Voyage embeddings from data/processed/embedded/
+  --real, -r           Use real OpenAI embeddings (requires OPENAI_API_KEY in .env)
+  --batch, -b          Batch size (default: 100)
+  --help, -h           Show this help message
 
 Examples:
-  npm run ingest                    # Quick test with mock embeddings
-  npm run ingest -- --real          # Production with real embeddings
-  npm run ingest -- --batch 50      # Smaller batches
+  npm run ingest                         # Quick test with mock embeddings
+  npm run ingest -- --from-embedded      # Use Voyage embeddings (run 'npm run embed' first)
+  npm run ingest -- --real               # Use OpenAI embeddings (legacy)
+  npm run ingest -- --batch 50           # Smaller batches
 `);
     process.exit(0);
   }
 
-  const useMockEmbeddings = !args.includes("--real") && !args.includes("-r");
+  const fromEmbedded = args.includes("--from-embedded") || args.includes("-e");
+  const useMockEmbeddings =
+    !fromEmbedded && !args.includes("--real") && !args.includes("-r");
   const batchSize = parseInt(
     args[args.indexOf("--batch") + 1] || args[args.indexOf("-b") + 1] || "100"
   );
 
-  if (!useMockEmbeddings && !process.env.OPENAI_API_KEY) {
+  if (
+    !fromEmbedded &&
+    !useMockEmbeddings &&
+    !process.env.OPENAI_API_KEY
+  ) {
     console.error("❌ OPENAI_API_KEY not found in .env file");
     console.error("Add your OpenAI API key or use mock embeddings:");
     console.error("  npm run ingest (uses mock embeddings)");
@@ -215,7 +248,7 @@ Examples:
   }
 
   try {
-    await ingestChunks({ useMockEmbeddings, batchSize });
+    await ingestChunks({ useMockEmbeddings, batchSize, fromEmbedded });
   } catch (error) {
     console.error("\n❌ Fatal error:", error);
     process.exit(1);

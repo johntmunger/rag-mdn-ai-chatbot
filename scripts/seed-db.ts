@@ -54,9 +54,9 @@ async function seedDatabase() {
       const sampleChunks = chunksData.chunks.slice(0, 5);
       
       for (const chunk of sampleChunks) {
-        // Generate a mock embedding (random 1536-dimensional vector)
-        // In production, you'd use OpenAI API to generate real embeddings
-        const mockEmbedding = Array.from({ length: 1536 }, () =>
+        // Generate a mock embedding (random 1024-dimensional vector)
+        // In production, use Voyage embeddings via: npm run embed
+        const mockEmbedding = Array.from({ length: 1024 }, () =>
           Math.random() * 2 - 1
         );
 
