@@ -1,0 +1,116 @@
+#!/usr/bin/env node
+import "dotenv/config";
+import { createVoyage } from "voyage-ai-provider";
+import { embedMany } from "ai";
+import postgres from "postgres";
+
+const connectionString = process.env.DATABASE_URL || "postgresql://example:example@localhost:5455/example";
+const client = postgres(connectionString);
+
+const apiKey = (process.env.VOYAGEAI_API_KEY || process.env.VOYAGE_API_KEY)?.trim();
+if (!apiKey) {
+  console.error("❌ No Voyage API key found");
+  process.exit(1);
+}
+
+const voyage = createVoyage({ apiKey });
+const embeddingModel = voyage.textEmbeddingModel("voyage-code-3");
+
+async function semanticSearch(query: string, topK: number = 5) {
+  if (!query || query.trim().length === 0) {
+    throw new Error("Query cannot be empty");
+  }
+
+  console.log(`🔍 Generating embedding for query...\n`);
+
+  const { embeddings } = await embedMany({
+    model: embeddingModel,
+    values: [query],
+    providerOptions: {
+      voyage: { inputType: "query", outputDimension: 1024 },
+    },
+  });
+
+  const queryEmbedding = embeddings[0];
+  console.log(`✅ Query embedding generated (1024 dimensions)\n`);
+  console.log(`🔎 Searching database for similar chunks...\n`);
+
+  const results = await client`
+    SELECT 
+      id,
+      text,
+      source,
+      heading,
+      title,
+      slug,
+      (1 - (embedding <=> ${JSON.stringify(queryEmbedding)}::vector)) as similarity
+    FROM document_embeddings
+    ORDER BY embedding <=> ${JSON.stringify(queryEmbedding)}::vector
+    LIMIT ${topK}
+  `;
+
+  return results as unknown as Array<{
+    id: string;
+    text: string;
+    source: string;
+    heading: string | null;
+    title: string | null;
+    slug: string | null;
+    similarity: number;
+  }>;
+}
+
+async function main() {
+  const query = process.argv[2];
+
+  if (!query) {
+    console.error("❌ Please provide a search query");
+    console.log("\nUsage: npm run semantic-search 'your query here'");
+    process.exit(1);
+  }
+
+  try {
+    console.log("═".repeat(70));
+    console.log(`📚 Semantic Search`);
+    console.log("═".repeat(70));
+    console.log(`\nQuestion: "${query}"\n`);
+
+    const searchResults = await semanticSearch(query);
+
+    if (searchResults.length === 0) {
+      console.error("❌ No similar chunks found in the database.");
+      process.exit(1);
+    }
+
+    console.log(`\n${"═".repeat(70)}`);
+    console.log(`📖 Top ${searchResults.length} Semantic Matches`);
+    console.log(`${"═".repeat(70)}\n`);
+
+    searchResults.forEach((result, index) => {
+      const similarityPercent = (result.similarity * 100).toFixed(2);
+      console.log(`\n${"─".repeat(70)}`);
+      console.log(`#${index + 1} | Similarity: ${similarityPercent}% | Source: ${result.source}`);
+      console.log(`${"─".repeat(70)}`);
+
+      if (result.title) console.log(`Title: ${result.title}`);
+      if (result.heading) console.log(`Heading: ${result.heading}`);
+      if (result.slug) console.log(`Slug: ${result.slug}`);
+
+      console.log(`\nContent Preview:`);
+      console.log(`${result.text.substring(0, 400).trim()}...\n`);
+    });
+
+    console.log(`${"═".repeat(70)}\n`);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error(`\n❌ Error: ${error.message}`);
+    } else {
+      console.error("❌ Unknown error:", error);
+    }
+    process.exit(1);
+  } finally {
+    await client.end();
+  }
+}
+
+main().catch(console.error);

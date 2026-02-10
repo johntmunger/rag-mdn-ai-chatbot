@@ -26,8 +26,8 @@ if (!apiKey) {
 
 const voyage = createVoyage({ apiKey });
 
-// voyage-3.5-lite (options passed via providerOptions in embedMany)
-const embeddingModel = voyage.textEmbeddingModel("voyage-3.5-lite");
+// voyage-code-3 (options passed via providerOptions in embedMany)
+const embeddingModel = voyage.textEmbeddingModel("voyage-code-3");
 
 interface ChunkData {
   id: string;
@@ -108,7 +108,7 @@ async function main() {
   }
 
   console.log("🚀 Generating embeddings with Voyage AI + AISDK\n");
-  console.log(`   Model: voyage-3.5-lite (1024 dims)`);
+  console.log(`   Model: voyage-code-3 (1536 dims)`);
   console.log(`   Input: ${chunksDir}`);
   console.log(`   Output: ${outputDir}\n`);
 
@@ -132,7 +132,7 @@ async function main() {
         ...content,
         chunks: chunksWithEmbeddings,
         embeddedAt: new Date().toISOString(),
-        embeddingModel: "voyage-3.5-lite",
+        embeddingModel: "voyage-code-3",
         embeddingDimensions: 1024,
       };
 
