@@ -2,9 +2,18 @@
 
 Type-safe database interactions with PostgreSQL and pgvector using Drizzle ORM.
 
+`cd "/Users/m1promachine2022/code/AIDD/RAG MDN/rag-mdn" && npm run db:reset && npm run db:push && npm run ingest -- --from-embedded`
+
+This will:
+Reset the database (drop the old table)
+Push the schema (create table with vector(1024))
+Re-ingest embeddings (use the real Voyage AI embeddings you already generated with 1024 dims)
+After this completes, Drizzle Studio will show 1024 dimensions because the actual database data will match the schema.
+
 ## Overview
 
 Drizzle provides:
+
 - ✅ Type-safe queries with full TypeScript support
 - ✅ Schema migrations with version control
 - ✅ Support for custom types (pgvector)
@@ -73,10 +82,10 @@ npm run db:connect
   characterCount: number;        // Character count
   wordCount: number;             // Word count
   embedding: number[] | null;    // Vector embedding (1536 dimensions)
-  
+
   // Full metadata
   metadata: object;              // JSONB with all chunk metadata
-  
+
   // Extracted fields for filtering
   source: string;                // Source file path
   chunkIndex: number;            // Position in document
@@ -88,7 +97,7 @@ npm run db:connect
   slug: string | null;           // MDN slug
   pageType: string | null;       // Page type (guide, reference)
   sidebar: string | null;        // Sidebar reference
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -183,10 +192,12 @@ await db.insert(documentEmbeddings).values({
 
 ```typescript
 // Insert multiple chunks at once
-const chunks = [/* your chunk data */];
+const chunks = [
+  /* your chunk data */
+];
 
 await db.insert(documentEmbeddings).values(
-  chunks.map(chunk => ({
+  chunks.map((chunk) => ({
     id: chunk.id,
     text: chunk.text,
     characterCount: chunk.characterCount,
@@ -203,7 +214,7 @@ await db.insert(documentEmbeddings).values(
     slug: chunk.metadata.slug,
     pageType: chunk.metadata.pageType,
     sidebar: chunk.metadata.sidebar,
-  }))
+  })),
 );
 ```
 
@@ -253,9 +264,11 @@ const results = await db
   .from(documentEmbeddings)
   .where(
     sql`${documentEmbeddings.source} = 'functions/index.md'
-        AND ${documentEmbeddings.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector < 0.5`
+        AND ${documentEmbeddings.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector < 0.5`,
   )
-  .orderBy(sql`${documentEmbeddings.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector`)
+  .orderBy(
+    sql`${documentEmbeddings.embedding} <=> ${JSON.stringify(queryEmbedding)}::vector`,
+  )
   .limit(5);
 ```
 
@@ -283,8 +296,8 @@ const results = await db
   .where(
     and(
       eq(documentEmbeddings.pageType, "guide"),
-      eq(documentEmbeddings.headingLevel, 2)
-    )
+      eq(documentEmbeddings.headingLevel, 2),
+    ),
   );
 ```
 
@@ -314,6 +327,7 @@ npm run db:studio
 ```
 
 Features:
+
 - Browse tables and data
 - Run queries
 - Edit records
@@ -361,7 +375,7 @@ const chunk: Chunk = await db
   .from(documentEmbeddings)
   .where(eq(documentEmbeddings.id, "closures_index_chunk_0"))
   .limit(1)
-  .then(rows => rows[0]);
+  .then((rows) => rows[0]);
 
 // TypeScript knows all available fields!
 console.log(chunk.text);
@@ -383,23 +397,24 @@ export async function searchDocumentation(
     limit?: number;
     filterSource?: string;
     filterPageType?: string;
-  } = {}
+  } = {},
 ) {
   const { limit = 5, filterSource, filterPageType } = options;
 
   let conditions = [];
-  
+
   if (filterSource) {
     conditions.push(sql`${documentEmbeddings.source} = ${filterSource}`);
   }
-  
+
   if (filterPageType) {
     conditions.push(sql`${documentEmbeddings.pageType} = ${filterPageType}`);
   }
 
-  const whereClause = conditions.length > 0 
-    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
-    : sql``;
+  const whereClause =
+    conditions.length > 0
+      ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
+      : sql``;
 
   const results = await db.execute(sql`
     SELECT 
@@ -433,6 +448,7 @@ export async function searchDocumentation(
 ### "relation does not exist"
 
 Run migrations:
+
 ```bash
 npm run db:push
 ```
@@ -440,6 +456,7 @@ npm run db:push
 ### "extension vector does not exist"
 
 Enable pgvector manually:
+
 ```bash
 npm run db:connect
 # Then in psql:
@@ -449,6 +466,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 ### Connection refused
 
 Make sure database is running:
+
 ```bash
 npm run db:status
 npm run db:up
@@ -457,12 +475,14 @@ npm run db:up
 ### Type errors with vector
 
 The custom `pgvector` type handles conversion between:
+
 - **TypeScript**: `number[]`
 - **Database**: `vector(1536)`
 
 Make sure to use JSON.stringify when passing to SQL:
+
 ```typescript
-sql`${JSON.stringify(embedding)}::vector`
+sql`${JSON.stringify(embedding)}::vector`;
 ```
 
 ## Best Practices

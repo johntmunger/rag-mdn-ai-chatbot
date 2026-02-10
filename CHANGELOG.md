@@ -5,6 +5,20 @@ All notable changes to the MDN Developer Chat project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed - Embedding Model Upgrade
+
+#### Voyage AI Model Switch
+
+- **Migration to Voyage Code 3**: Updated embedding generation to use `voyage-code-3` model for improved code-specific embeddings
+  - Updated `scripts/generate-embeddings.ts` to use `voyage.textEmbeddingModel("voyage-code-3")`
+  - Updated `scripts/semantic-search.ts` to query with `voyage-code-3` model
+  - Configured vector dimensions to 1024 (voyage-code-3 native dimension for optimal performance)
+  - Updated database schema `src/db/schema/documents.ts` to reflect 1024-dimensional vectors
+- **Query Optimization**: Set `inputType: "query"` in semantic search for Voyage API query optimization
+- **Documentation**: Updated setup guides and references to reflect new embedding model configuration
+
 ## [0.2.0] - 2026-02-06
 
 ### Added - RAG Infrastructure & Document Processing Pipeline
