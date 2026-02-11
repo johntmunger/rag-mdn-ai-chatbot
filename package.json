@@ -27,6 +27,7 @@
     "db:push:interactive": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "semantic-search": "tsx scripts/semantic-search.ts",
+    "search": "tsx scripts/semantic-search.ts",
     "db:test": "tsx scripts/test-db-query.ts",
     "test:setup": "tsx scripts/test-setup.ts"
   },
