@@ -28,10 +28,12 @@
     "db:studio": "drizzle-kit studio",
     "semantic-search": "tsx scripts/semantic-search.ts",
     "search": "tsx scripts/semantic-search.ts",
+    "ask": "tsx scripts/rag-query.ts",
     "db:test": "tsx scripts/test-db-query.ts",
     "test:setup": "tsx scripts/test-setup.ts"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.41",
     "@langchain/community": "^1.1.12",
     "@langchain/core": "^1.1.19",
     "@langchain/textsplitters": "^1.0.1",

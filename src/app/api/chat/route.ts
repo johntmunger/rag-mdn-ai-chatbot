@@ -1,22 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { documentEmbeddings } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import OpenAI from "openai";
+import { anthropic } from "@ai-sdk/anthropic";
+import { streamText } from "ai";
 import { createVoyage } from "voyage-ai-provider";
 import { embed } from "ai";
 
-// Initialize OpenAI for chat completions
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+// Initialize Anthropic for chat completions
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
+const hasAnthropicKey = !!anthropicApiKey;
 
 // Initialize Voyage for query embeddings (matches document embeddings)
 const voyageApiKey =
   process.env.VOYAGEAI_API_KEY || process.env.VOYAGE_API_KEY;
 const voyage = voyageApiKey ? createVoyage({ apiKey: voyageApiKey }) : null;
 const voyageEmbeddingModel = voyage
-  ? voyage.textEmbeddingModel("voyage-3.5-lite")
+  ? voyage.textEmbeddingModel("voyage-code-3") // Updated to match our embeddings
   : null;
 
 /**
@@ -68,65 +68,84 @@ async function searchSimilarChunks(
 }
 
 /**
- * Generate AI response using retrieved chunks as context
+ * Build context string from search results
  */
-async function generateResponse(query: string, chunks: any[]): Promise<string> {
-  if (!openai) {
-    // Demo response when no API key
-    return `**Demo Response (No OpenAI API Key)**\n\nBased on the MDN documentation chunks retrieved from the database, here's what I found:\n\n${chunks
-      .map(
-        (c, i) =>
-          `**Source ${i + 1}:** ${c.title} - ${c.heading}\n${c.text.substring(0, 200)}...`
-      )
-      .join("\n\n")}\n\n*Note: Add OPENAI_API_KEY to .env for real AI responses.*`;
-  }
+function buildContext(chunks: any[]): string {
+  return chunks
+    .map((chunk, idx) => {
+      const parts = [
+        `--- Document ${idx + 1} ---`,
+        `Title: ${chunk.title || "N/A"}`,
+        `Source: ${chunk.source}`,
+      ];
 
-  // Build context from chunks
-  const context = chunks
-    .map(
-      (chunk, idx) =>
-        `[Source ${idx + 1}: ${chunk.title} - ${chunk.heading}]\n${chunk.text}`
-    )
-    .join("\n\n---\n\n");
+      if (chunk.heading) {
+        parts.push(`Section: ${chunk.heading}`);
+      }
 
-  // Call OpenAI with context
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4-turbo-preview",
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert JavaScript developer assistant. Answer questions using ONLY the provided MDN documentation context. Include citations like [1], [2] when referencing sources. Keep answers clear and concise.
+      if (chunk.slug) {
+        parts.push(`URL: https://developer.mozilla.org/en-US/docs/${chunk.slug}`);
+      }
 
-Context from MDN Documentation:
-${context}`,
-      },
-      {
-        role: "user",
-        content: query,
-      },
-    ],
-    temperature: 0.7,
-    max_tokens: 1000,
-  });
+      parts.push(
+        `Relevance: ${(chunk.similarity * 100).toFixed(1)}%`,
+        `\nContent:\n${chunk.text}`,
+        ""
+      );
 
-  return completion.choices[0].message.content || "No response generated.";
+      return parts.join("\n");
+    })
+    .join("\n");
 }
 
 /**
- * POST /api/chat - Handle chat messages with RAG
+ * System prompt for MDN documentation assistant
+ */
+function getSystemPrompt(): string {
+  return `You are an expert JavaScript/Web Development assistant with deep knowledge of MDN (Mozilla Developer Network) documentation.
+
+Your role is to:
+- Answer questions accurately based on the provided MDN documentation context
+- Explain concepts clearly with examples when helpful
+- Reference the specific MDN pages when relevant (use [1], [2] notation for citations)
+- Admit when the provided context doesn't contain enough information to fully answer
+- Use proper technical terminology but explain it in an accessible way
+
+When answering:
+- Prioritize information from the provided context
+- Include code examples from the context when available
+- Mention which specific MDN page(s) the information comes from using [1], [2] citations
+- If the context is insufficient, say so clearly
+
+Keep responses concise but thorough.`;
+}
+
+/**
+ * POST /api/chat - Handle chat messages with RAG (Streaming)
  */
 export async function POST(request: NextRequest) {
   try {
     const { message } = await request.json();
 
     if (!message || typeof message !== "string") {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
+      return new Response(
+        JSON.stringify({ error: "Message is required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     console.log(`📩 Received query: "${message}"`);
+
+    // Check for Anthropic API key
+    if (!hasAnthropicKey) {
+      return new Response(
+        JSON.stringify({ 
+          error: "ANTHROPIC_API_KEY not configured",
+          details: "Add ANTHROPIC_API_KEY to your .env file" 
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     // 1. Generate embedding for the query
     console.log("🔍 Generating query embedding...");
@@ -143,42 +162,66 @@ export async function POST(request: NextRequest) {
       );
     });
 
-    // 3. Generate AI response
-    console.log("🤖 Generating AI response...");
-    const aiResponse = await generateResponse(message, similarChunks);
+    // 3. Build context from chunks
+    const context = buildContext(similarChunks);
 
-    // 4. Prepare citations for frontend (matches Citation type)
+    // 4. Prepare citations for frontend (will be sent in data stream)
     const citations = similarChunks.map((chunk, idx) => ({
       id: (idx + 1).toString(),
       mdnTitle: chunk.title
         ? `${chunk.title} - ${chunk.heading}`
         : chunk.heading || "MDN Documentation",
       mdnUrl: chunk.slug
-        ? `https://developer.mozilla.org/en-US/${chunk.slug}#line-${chunk.start_line}`
+        ? `https://developer.mozilla.org/en-US/docs/${chunk.slug}#line-${chunk.start_line}`
         : `https://developer.mozilla.org/en-US/docs/Web/JavaScript`,
       excerpt: chunk.text.substring(0, 200) + "...",
     }));
 
-    console.log("✅ Response generated successfully\n");
+    // 5. Stream AI response using Claude
+    console.log("🤖 Streaming AI response with Claude...");
 
-    return NextResponse.json({
-      response: aiResponse,
-      citations,
-      metadata: {
-        queryEmbeddingGenerated: !!openai,
-        chunksRetrieved: similarChunks.length,
-        model: openai ? "gpt-4-turbo-preview" : "mock",
+    const result = streamText({
+      model: anthropic("claude-3-haiku-20240307"),
+      temperature: 0.3,
+      maxTokens: 2048,
+      system: getSystemPrompt(),
+      messages: [
+        {
+          role: "user",
+          content: `Context from MDN Documentation:
+
+${context}
+
+---
+
+Question: ${message}
+
+Please answer based on the provided context.`,
+        },
+      ],
+      // Include citations in the stream metadata
+      onFinish: () => {
+        console.log("✅ Response stream completed\n");
+      },
+    });
+
+    // Return streaming response with citations
+    // The Vercel AI SDK automatically handles the streaming protocol
+    return result.toDataStreamResponse({
+      headers: {
+        "X-Citations": JSON.stringify(citations),
+        "X-Chunks-Retrieved": similarChunks.length.toString(),
       },
     });
   } catch (error) {
     console.error("❌ Error in /api/chat:", error);
     
-    return NextResponse.json(
-      {
+    return new Response(
+      JSON.stringify({
         error: "Failed to process request",
         details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
