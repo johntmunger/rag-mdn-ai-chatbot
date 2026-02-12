@@ -1,6 +1,6 @@
 # MDN Developer Chat
 
-An AI-powered documentation assistant for web developers. Ask questions about JavaScript, CSS, HTML, and Web APIs and get instant answers backed by MDN documentation with source citations.
+An AI-powered documentation assistant for web developers. Ask questions about JavaScript and get instant answers backed by MDN documentation with source citations.
 
 **Powered by:** Voyage AI embeddings + PostgreSQL pgvector + OpenAI GPT-3.5-turbo
 
