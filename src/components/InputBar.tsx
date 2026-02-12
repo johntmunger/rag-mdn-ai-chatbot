@@ -14,7 +14,7 @@ interface InputBarProps {
 export function InputBar({
   onSend,
   disabled = false,
-  placeholder = "Ask me something about JavaScript...",
+  placeholder = "Ask me anything related to JavaScript...",
   suggestions = [],
 }: InputBarProps) {
   const [input, setInput] = useState("");
@@ -88,6 +88,7 @@ export function InputBar({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled}
+            autoFocus
             className={cn(
               "w-full p-4 pr-14 rounded-2xl resize-none",
               "bg-transparent border-0",

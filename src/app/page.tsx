@@ -173,7 +173,7 @@ export default function Home() {
             onSend={handleSendMessage}
             disabled={false}
             suggestions={[]}
-            placeholder="Ask me something related to JavaScript..."
+            placeholder="Ask me anything related to JavaScript..."
           />
         </main>
       </div>
