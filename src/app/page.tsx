@@ -207,7 +207,7 @@ export default function Home() {
           onSend={handleSendMessage}
           disabled={isGenerating}
           suggestions={quickSuggestions}
-          placeholder="Ask me something about JavaScript..."
+          placeholder="Ask me anything related to JavaScript..."
         />
       </main>
 
