@@ -20,7 +20,6 @@ import "dotenv/config";
 import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, streamText } from "ai";
 import {
-  performSemanticSearch,
   generateQuestionEmbedding,
   searchSimilarChunks,
   type SearchResult,
@@ -134,7 +133,6 @@ async function ragQueryNonStreaming(
   const { text } = await generateText({
     model: anthropic(model),
     temperature,
-    maxTokens: 2048,
     system: getSystemPrompt(),
     messages: [
       {
@@ -202,7 +200,6 @@ async function ragQueryStreaming(
   const result = await streamText({
     model: anthropic(model),
     temperature,
-    maxTokens: 2048,
     system: getSystemPrompt(),
     messages: [
       {
@@ -248,7 +245,6 @@ async function main(): Promise<void> {
   }
 
   // Parse arguments
-  let question: string;
   let limit: number = 5;
   let streaming: boolean = false;
   let model: string = "claude-3-haiku-20240307";
@@ -264,7 +260,7 @@ async function main(): Promise<void> {
   }
 
   // Extract question and flags
-  question = args.filter((arg) => !arg.startsWith("--")).join(" ");
+  const question = args.filter((arg) => !arg.startsWith("--")).join(" ");
 
   // Parse optional flags
   const limitArg = args.find((arg) => arg.startsWith("--limit="));

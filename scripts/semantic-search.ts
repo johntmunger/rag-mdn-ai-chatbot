@@ -206,7 +206,6 @@ async function performSemanticSearch(
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
 
-  let question: string;
   let limit: number = 5;
 
   // Parse command line arguments
@@ -219,7 +218,7 @@ async function main(): Promise<void> {
   }
 
   // Parse arguments: question --limit=N
-  question = args.filter((arg) => !arg.startsWith("--")).join(" ");
+  const question = args.filter((arg) => !arg.startsWith("--")).join(" ");
 
   const limitArg = args.find((arg) => arg.startsWith("--limit="));
   if (limitArg) {
