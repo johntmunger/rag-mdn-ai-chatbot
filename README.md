@@ -1,6 +1,8 @@
-# JS Assistant - JavaScript Q&A Chat Interface
+# MDN Developer Chat
 
-A modern, ChatGPT-like chat interface specifically designed for JavaScript Q&A, featuring excellent code snippet support and subtle MDN-backed validation.
+An AI-powered documentation assistant for web developers. Ask questions about JavaScript, CSS, HTML, and Web APIs and get instant answers backed by MDN documentation with source citations.
+
+**Powered by:** Voyage AI embeddings + PostgreSQL pgvector + OpenAI GPT-3.5-turbo
 
 ## Features
 

@@ -52,7 +52,7 @@ export function InputBar({
 
   return (
     <div className="sticky bottom-0 left-0 right-0 bg-[var(--background)] border-t border-[var(--border)] py-4">
-      <div className="max-w-4xl mx-auto px-4">
+      <div className="max-w-4xl mx-auto px-4 pt-4">
         {/* Quick suggestions */}
         {suggestions.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2 animate-fade-in">
@@ -65,7 +65,7 @@ export function InputBar({
                   "px-3 py-1.5 text-sm rounded-full",
                   "bg-[var(--muted)] hover:bg-[var(--hover-bg)]",
                   "border border-[var(--border)] transition-colors",
-                  disabled && "opacity-50 cursor-not-allowed"
+                  disabled && "opacity-50 cursor-not-allowed",
                 )}
               >
                 {suggestion}
@@ -78,8 +78,7 @@ export function InputBar({
         <div
           className={cn(
             "relative rounded-2xl border border-[var(--border)]",
-            "bg-[var(--input-bg)] transition-all",
-            "focus-within:ring-2 focus-within:ring-[var(--accent)]"
+            "bg-[var(--input-bg)] transition-all"
           )}
         >
           <textarea
@@ -92,9 +91,9 @@ export function InputBar({
             className={cn(
               "w-full p-4 pr-14 rounded-2xl resize-none",
               "bg-transparent border-0",
-              "focus:outline-none",
+              "focus:outline-none focus:ring-0",
               "transition-all max-h-[200px] overflow-y-auto",
-              disabled && "opacity-50 cursor-not-allowed"
+              disabled && "opacity-50 cursor-not-allowed",
             )}
             rows={1}
           />
@@ -108,7 +107,7 @@ export function InputBar({
               "bg-[var(--accent)] hover:bg-[var(--accent-hover)]",
               "text-white transition-all flex items-center justify-center",
               "disabled:opacity-50 disabled:cursor-not-allowed",
-              input.trim() && !disabled ? "scale-100" : "scale-90 opacity-50"
+              input.trim() && !disabled ? "scale-100" : "scale-90 opacity-50",
             )}
             aria-label="Send message"
           >

@@ -158,14 +158,17 @@ export default function Home() {
   // Prevent hydration mismatch by not rendering until mounted
   if (!isMounted) {
     return (
-      <div className="h-screen flex flex-col bg-[var(--background)]">
+      <div className="h-screen flex flex-col bg-gradient-to-b from-[var(--background)] to-gray-50 dark:to-gray-900">
         <TopBar
           onSettingsClick={() => setIsSettingsOpen(true)}
           onDownload={handleDownload}
           onRestart={handleRestart}
         />
         <main className="flex-1 flex flex-col overflow-hidden">
-          <EmptyState onExampleClick={handleSendMessage} />
+          <div className="max-w-6xl w-full mx-auto flex-1 flex flex-col overflow-hidden">
+            <EmptyState onExampleClick={handleSendMessage} />
+          </div>
+
           <InputBar
             onSend={handleSendMessage}
             disabled={false}
@@ -178,7 +181,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[var(--background)]">
+    <div className="h-screen flex flex-col bg-gradient-to-b from-[var(--background)] to-gray-50 dark:to-gray-900">
       <TopBar
         onSettingsClick={() => setIsSettingsOpen(true)}
         onDownload={handleDownload}
@@ -186,17 +189,20 @@ export default function Home() {
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">
-        {messages.length === 0 && !isGenerating ? (
-          <EmptyState onExampleClick={handleSendMessage} />
-        ) : (
-          <MessageList
-            messages={messages}
-            isGenerating={isGenerating}
-            onRegenerate={handleRegenerate}
-            onPin={handlePin}
-            onCopy={handleCopy}
-          />
-        )}
+        <div className="max-w-6xl w-full mx-auto flex-1 flex flex-col overflow-hidden">
+          {messages.length === 0 && !isGenerating ? (
+            <EmptyState onExampleClick={handleSendMessage} />
+          ) : (
+            <MessageList
+              messages={messages}
+              isGenerating={isGenerating}
+              onRegenerate={handleRegenerate}
+              onPin={handlePin}
+              onCopy={handleCopy}
+            />
+          )}
+
+        </div>
 
         <InputBar
           onSend={handleSendMessage}
