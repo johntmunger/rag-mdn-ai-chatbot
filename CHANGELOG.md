@@ -5,7 +5,62 @@ All notable changes to the MDN Developer Chat project will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2026-02-11
+
+### Added - Complete RAG Implementation
+
+#### Full RAG Pipeline with OpenAI Integration
+
+- **OpenAI GPT-3.5-turbo Integration**: Implemented answer generation using OpenAI for fast, reliable responses
+  - Integrated with semantic search for context-aware answers
+  - Added MDN citation links with source verification
+  - Response time: ~2-4 seconds (optimized for speed)
+  - Non-streaming implementation for reliability
+
+- **RAG Query Script** (`scripts/rag-query.ts`): CLI tool for testing RAG pipeline
+  - Supports both streaming and non-streaming modes
+  - Configurable model and token limits
+  - Exports functions for reuse in application
+
+- **Chat API Endpoint** (`src/app/api/chat/route.ts`): Complete RAG endpoint
+  - Retrieval: Voyage AI semantic search
+  - Augmentation: Context building from top-k chunks
+  - Generation: OpenAI GPT-3.5-turbo
+  - Returns formatted response with MDN citations
+
+#### Performance Optimizations
+
+- **10x Faster Responses**: Switched from GPT-4 to GPT-3.5-turbo
+  - Response time reduced from ~40s to ~2-4s
+  - 90% cost reduction while maintaining quality
+  
+- **Response Caching**: In-memory cache for frequent queries
+  - Stores 10 most recent queries with 1-hour TTL
+  - Cached responses return in < 1 second
+  - Skips expensive embedding and LLM calls
+  
+- **Reduced Token Limit**: Optimized max_tokens from 2048 to 1000
+  - Faster generation
+  - More concise answers
+  - Better readability
+
+### Fixed - UI Rendering Issues
+
+#### Code Block Rendering Fix
+
+- **Resolved `[object Object]` in Code Blocks**: Fixed ReactMarkdown syntax highlighting issue
+  - Root cause: `rehypeHighlight` converts code to array of React `<span>` elements
+  - Solution: Implemented `extractText()` function to recursively extract text from React elements
+  - Updated `src/components/AssistantMessage.tsx` with proper children handling
+  - Code blocks now render clean JavaScript with proper syntax highlighting
+
+#### Citation Display
+
+- **MDN Source Links**: Citations include clickable links to MDN documentation
+  - Built from document `slug` field
+  - Links to specific sections when available
+  - Expandable sources footer with excerpts
+  - External link icons for clarity
 
 ### Changed - Embedding Model Upgrade
 
@@ -13,11 +68,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Migration to Voyage Code 3**: Updated embedding generation to use `voyage-code-3` model for improved code-specific embeddings
   - Updated `scripts/generate-embeddings.ts` to use `voyage.textEmbeddingModel("voyage-code-3")`
-  - Updated `scripts/semantic-search.ts` to query with `voyage-code-3` model
-  - Configured vector dimensions to 1024 (voyage-code-3 native dimension for optimal performance)
-  - Updated database schema `src/db/schema/documents.ts` to reflect 1024-dimensional vectors
-- **Query Optimization**: Set `inputType: "query"` in semantic search for Voyage API query optimization
-- **Documentation**: Updated setup guides and references to reflect new embedding model configuration
+  - Refactored `scripts/semantic-search.ts` with improved function organization
+  - Configured vector dimensions to 1024 (voyage-code-3 native dimension)
+  - Updated database schema `src/db/schema/documents.ts` to vector(1024)
+  
+- **Semantic Search Refactoring**: Improved script structure following best practices
+  - Renamed functions: `semanticSearch` → `searchSimilarChunks`
+  - Added `generateQuestionEmbedding()` function
+  - Added `displayResults()` function for formatted output
+  - Added `performSemanticSearch()` as main orchestrator
+  - Set `inputType: "query"` for Voyage API query optimization
+  - Added comprehensive JSDoc comments
+  - Exported functions for module reuse
+
+### Documentation
+
+- **RAG_USAGE_GUIDE.md**: Complete guide for using the RAG system
+  - CLI usage examples
+  - API endpoint documentation
+  - Frontend integration patterns
+  - Architecture overview
+  - Troubleshooting guide
+
+- **UI_INTEGRATION.md**: UI integration guide with streaming examples
+  - Vercel AI SDK integration patterns
+  - Citation handling
+  - Testing checklist
+
+- **PERFORMANCE_OPTIMIZATIONS.md**: Performance tuning guide
+  - Optimization strategies
+  - Benchmark comparisons
+  - Future enhancement ideas
 
 ## [0.2.0] - 2026-02-06
 

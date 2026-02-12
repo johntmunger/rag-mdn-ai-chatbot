@@ -12,6 +12,39 @@ const openai = process.env.OPENAI_API_KEY
   : null;
 const hasOpenAI = !!openai;
 
+// Simple in-memory cache for responses (stores 10 most recent queries)
+const responseCache = new Map<string, {
+  response: string;
+  citations: any[];
+  timestamp: number;
+}>();
+const CACHE_SIZE = 10;
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
+function getCachedResponse(query: string) {
+  const cached = responseCache.get(query.toLowerCase().trim());
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log("   ✨ Returning cached response");
+    return cached;
+  }
+  return null;
+}
+
+function setCachedResponse(query: string, response: string, citations: any[]) {
+  const key = query.toLowerCase().trim();
+  responseCache.set(key, {
+    response,
+    citations,
+    timestamp: Date.now(),
+  });
+  
+  // Keep cache size limited (FIFO)
+  if (responseCache.size > CACHE_SIZE) {
+    const firstKey = responseCache.keys().next().value;
+    responseCache.delete(firstKey);
+  }
+}
+
 // Initialize Voyage for query embeddings (matches document embeddings)
 const voyageApiKey =
   process.env.VOYAGEAI_API_KEY || process.env.VOYAGE_API_KEY;
@@ -151,6 +184,24 @@ export async function POST(request: NextRequest) {
 
     console.log(`📩 Received query: "${message}"`);
 
+    // Check cache first (skip expensive operations if cached)
+    const cached = getCachedResponse(message);
+    if (cached) {
+      return new Response(
+        JSON.stringify({
+          response: cached.response,
+          citations: cached.citations,
+          metadata: {
+            cached: true,
+            model: "gpt-3.5-turbo",
+          },
+        }),
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     // Check for OpenAI API key
     if (!hasOpenAI) {
       return new Response(
@@ -196,9 +247,9 @@ export async function POST(request: NextRequest) {
     console.log("🤖 Generating AI response with OpenAI...");
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
+      model: "gpt-3.5-turbo",
       temperature: 0.3,
-      max_tokens: 2048,
+      max_tokens: 1000,
       stream: false,
       messages: [
         {
@@ -224,13 +275,17 @@ Please answer based on the provided context.`,
     
     console.log("✅ Response generated\n");
 
+    // Cache the response for future queries
+    setCachedResponse(message, responseText, citations);
+
     return new Response(
       JSON.stringify({
         response: responseText,
         citations,
         metadata: {
           chunksRetrieved: similarChunks.length,
-          model: "gpt-4-turbo-preview",
+          model: "gpt-3.5-turbo",
+          cached: false,
         },
       }),
       {
