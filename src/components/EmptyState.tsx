@@ -41,8 +41,9 @@ export function EmptyState({ onExampleClick }: EmptyStateProps) {
             Welcome to MDN Developer Chat
           </h2>
           <p className="text-[var(--muted-foreground)] text-lg max-w-2xl mx-auto leading-relaxed">
-            Ask me anything about web development, JavaScript, CSS, HTML, or any
-            other topics covered in MDN documentation. Get instant answers with source citations.
+            Ask me anything about JavaScript logic, asynchronous programming, or
+            any core ECMAScript features covered in MDN documentation. Get
+            instant technical answers with source citations.
           </p>
         </div>
 
@@ -56,7 +57,7 @@ export function EmptyState({ onExampleClick }: EmptyStateProps) {
                 "hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950/30 dark:hover:to-purple-950/30",
                 "hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-lg hover:shadow-blue-500/10",
                 "transition-all duration-300 text-left group",
-                "animate-fade-in backdrop-blur-sm"
+                "animate-fade-in backdrop-blur-sm",
               )}
               style={{ animationDelay: `${index * 75}ms` }}
             >
@@ -65,7 +66,9 @@ export function EmptyState({ onExampleClick }: EmptyStateProps) {
                   <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400 group-hover:text-white transition-colors" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-sm mb-1.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{example.title}</h3>
+                  <h3 className="font-semibold text-sm mb-1.5 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {example.title}
+                  </h3>
                   <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 leading-relaxed">
                     {example.prompt}
                   </p>

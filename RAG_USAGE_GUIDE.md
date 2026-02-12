@@ -118,7 +118,7 @@ export function Chat() {
         <input
           value={input}
           onChange={handleInputChange}
-          placeholder="Ask about JavaScript..."
+          placeholder="Ask me something about JavaScript..."
           disabled={isLoading}
         />
         <button type="submit" disabled={isLoading}>

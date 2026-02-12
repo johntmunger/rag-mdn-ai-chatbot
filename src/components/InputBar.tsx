@@ -14,7 +14,7 @@ interface InputBarProps {
 export function InputBar({
   onSend,
   disabled = false,
-  placeholder = "Ask about JavaScript, CSS, HTML, Web APIs, or any web development topic...",
+  placeholder = "Ask me something about JavaScript...",
   suggestions = [],
 }: InputBarProps) {
   const [input, setInput] = useState("");
@@ -78,7 +78,7 @@ export function InputBar({
         <div
           className={cn(
             "relative rounded-2xl border border-[var(--border)]",
-            "bg-[var(--input-bg)] transition-all"
+            "bg-[var(--input-bg)] transition-all",
           )}
         >
           <textarea

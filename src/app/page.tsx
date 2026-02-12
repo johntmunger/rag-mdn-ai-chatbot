@@ -30,7 +30,7 @@ export default function Home() {
   const [messages, setMessages] = useLocalStorage<Message[]>("messages", []);
   const [settings, setSettings] = useLocalStorage<Settings>(
     "settings",
-    defaultSettings
+    defaultSettings,
   );
   const [isGenerating, setIsGenerating] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -61,7 +61,7 @@ export default function Home() {
   const callStreamingAPI = async (currentMessages: Message[]) => {
     try {
       const lastUserMessage = currentMessages[currentMessages.length - 1];
-      
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -85,7 +85,7 @@ export default function Home() {
       setMessages([...currentMessages, assistantMessage]);
     } catch (error) {
       console.error("Error calling API:", error);
-      
+
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
@@ -112,8 +112,8 @@ export default function Home() {
   const handlePin = (messageId: string) => {
     setMessages(
       messages.map((msg) =>
-        msg.id === messageId ? { ...msg, isPinned: !msg.isPinned } : msg
-      )
+        msg.id === messageId ? { ...msg, isPinned: !msg.isPinned } : msg,
+      ),
     );
   };
 
@@ -173,7 +173,7 @@ export default function Home() {
             onSend={handleSendMessage}
             disabled={false}
             suggestions={[]}
-            placeholder="Ask about JavaScript, CSS, HTML, Web APIs, or any web development topic..."
+            placeholder="Ask me something related to JavaScript..."
           />
         </main>
       </div>
@@ -201,14 +201,13 @@ export default function Home() {
               onCopy={handleCopy}
             />
           )}
-
         </div>
 
         <InputBar
           onSend={handleSendMessage}
           disabled={isGenerating}
           suggestions={quickSuggestions}
-          placeholder="Ask about JavaScript, CSS, HTML, Web APIs, or any web development topic..."
+          placeholder="Ask me something about JavaScript..."
         />
       </main>
 
