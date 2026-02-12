@@ -98,9 +98,26 @@ export function AssistantMessage({
                 const isInline = !className?.includes("language-");
 
                 if (!isInline && language) {
+                  // Extract text content from children (handles strings, arrays, and React elements)
+                  const extractText = (node: any): string => {
+                    if (typeof node === "string") {
+                      return node;
+                    }
+                    if (Array.isArray(node)) {
+                      return node.map(extractText).join("");
+                    }
+                    if (node && typeof node === "object" && node.props) {
+                      // React element - extract children recursively
+                      return extractText(node.props.children);
+                    }
+                    return "";
+                  };
+                  
+                  const codeText = extractText(children);
+                    
                   return (
                     <CodeBlock
-                      code={String(children).replace(/\n$/, "")}
+                      code={codeText.replace(/\n$/, "")}
                       language={language}
                     />
                   );

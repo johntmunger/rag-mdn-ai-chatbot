@@ -8,7 +8,7 @@ import { InputBar } from "@/components/InputBar";
 import { SettingsPanel } from "@/components/SettingsPanel";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { generateId } from "@/lib/utils";
-import type { Message, Settings } from "@/types";
+import type { Message, Settings, Citation } from "@/types";
 
 // Default settings
 const defaultSettings: Settings = {
@@ -52,18 +52,16 @@ export default function Home() {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
 
-    // Simulate AI response
+    // Call streaming API
     setIsGenerating(true);
-    await simulateAIResponse(updatedMessages);
+    await callStreamingAPI(updatedMessages);
     setIsGenerating(false);
   };
 
-  const simulateAIResponse = async (currentMessages: Message[]) => {
+  const callStreamingAPI = async (currentMessages: Message[]) => {
     try {
-      // Get the last user message
       const lastUserMessage = currentMessages[currentMessages.length - 1];
       
-      // Call RAG API
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -88,32 +86,10 @@ export default function Home() {
     } catch (error) {
       console.error("Error calling API:", error);
       
-      // Fallback error message
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
-        content: `# ⚠️ API Connection Error
-
-Could not connect to the RAG backend. 
-
-**Error:** ${error instanceof Error ? error.message : String(error)}
-
-## Troubleshooting Steps
-
-1. Make sure the database is running:
-   \`\`\`bash
-   npm run db:status
-   \`\`\`
-
-2. Check if chunks are loaded:
-   \`\`\`bash
-   npm run db:test
-   \`\`\`
-
-3. Restart the development server:
-   \`\`\`bash
-   npm run dev
-   \`\`\``,
+        content: `# ⚠️ API Connection Error\n\nCould not connect to the RAG backend.\n\n**Error:** ${error instanceof Error ? error.message : String(error)}`,
         timestamp: new Date().toISOString(),
       };
 
@@ -129,7 +105,7 @@ Could not connect to the RAG backend.
     setMessages(messagesToKeep);
 
     setIsGenerating(true);
-    await simulateAIResponse(messagesToKeep);
+    await callStreamingAPI(messagesToKeep);
     setIsGenerating(false);
   };
 

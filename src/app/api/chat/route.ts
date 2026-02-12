@@ -2,14 +2,15 @@ import { NextRequest } from "next/server";
 import { db } from "@/db";
 import { documentEmbeddings } from "@/db/schema";
 import { sql } from "drizzle-orm";
-import { anthropic } from "@ai-sdk/anthropic";
-import { streamText } from "ai";
 import { createVoyage } from "voyage-ai-provider";
 import { embed } from "ai";
+import OpenAI from "openai";
 
-// Initialize Anthropic for chat completions
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
-const hasAnthropicKey = !!anthropicApiKey;
+// Initialize OpenAI for chat completions
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+const hasOpenAI = !!openai;
 
 // Initialize Voyage for query embeddings (matches document embeddings)
 const voyageApiKey =
@@ -63,8 +64,8 @@ async function searchSimilarChunks(
     LIMIT ${limit}
   `);
 
-  // Return the rows array directly
-  return Array.from(results as any);
+  // Extract rows from Drizzle result
+  return (results as any).rows || results;
 }
 
 /**
@@ -108,16 +109,30 @@ Your role is to:
 - Answer questions accurately based on the provided MDN documentation context
 - Explain concepts clearly with examples when helpful
 - Reference the specific MDN pages when relevant (use [1], [2] notation for citations)
-- Admit when the provided context doesn't contain enough information to fully answer
 - Use proper technical terminology but explain it in an accessible way
 
-When answering:
-- Prioritize information from the provided context
-- Include code examples from the context when available
-- Mention which specific MDN page(s) the information comes from using [1], [2] citations
-- If the context is insufficient, say so clearly
+CRITICAL CODE FORMATTING RULES:
+- When showing code examples, WRITE FRESH, CLEAN CODE - do NOT copy code verbatim from the context
+- Always use proper markdown code blocks: \`\`\`javascript followed by code, then \`\`\`
+- Write syntactically correct JavaScript with proper variable names
+- Use descriptive variable names like 'counter', 'name', 'result' (NOT placeholders or objects)
+- Test that your code would actually run in JavaScript
 
-Keep responses concise but thorough.`;
+Example of GOOD code formatting:
+\`\`\`javascript
+function example() {
+  const name = "Alice";
+  console.log(name);
+}
+\`\`\`
+
+When answering:
+- Explain concepts based on the context provided
+- Write fresh, clean code examples to illustrate concepts
+- Use [1], [2] citations to reference MDN sources
+- Keep responses concise but thorough
+
+If the context is insufficient, say so clearly.`;
 }
 
 /**
@@ -136,12 +151,12 @@ export async function POST(request: NextRequest) {
 
     console.log(`📩 Received query: "${message}"`);
 
-    // Check for Anthropic API key
-    if (!hasAnthropicKey) {
+    // Check for OpenAI API key
+    if (!hasOpenAI) {
       return new Response(
         JSON.stringify({ 
-          error: "ANTHROPIC_API_KEY not configured",
-          details: "Add ANTHROPIC_API_KEY to your .env file" 
+          error: "OPENAI_API_KEY not configured",
+          details: "Add OPENAI_API_KEY to your .env file" 
         }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
@@ -165,7 +180,7 @@ export async function POST(request: NextRequest) {
     // 3. Build context from chunks
     const context = buildContext(similarChunks);
 
-    // 4. Prepare citations for frontend (will be sent in data stream)
+    // 4. Prepare citations for frontend
     const citations = similarChunks.map((chunk, idx) => ({
       id: (idx + 1).toString(),
       mdnTitle: chunk.title
@@ -177,15 +192,19 @@ export async function POST(request: NextRequest) {
       excerpt: chunk.text.substring(0, 200) + "...",
     }));
 
-    // 5. Stream AI response using Claude
-    console.log("🤖 Streaming AI response with Claude...");
+    // 5. Generate AI response using OpenAI (non-streaming - reliable and fast)
+    console.log("🤖 Generating AI response with OpenAI...");
 
-    const result = streamText({
-      model: anthropic("claude-3-haiku-20240307"),
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4-turbo-preview",
       temperature: 0.3,
-      maxTokens: 2048,
-      system: getSystemPrompt(),
+      max_tokens: 2048,
+      stream: false,
       messages: [
+        {
+          role: "system",
+          content: getSystemPrompt(),
+        },
         {
           role: "user",
           content: `Context from MDN Documentation:
@@ -199,20 +218,27 @@ Question: ${message}
 Please answer based on the provided context.`,
         },
       ],
-      // Include citations in the stream metadata
-      onFinish: () => {
-        console.log("✅ Response stream completed\n");
-      },
     });
 
-    // Return streaming response with citations
-    // The Vercel AI SDK automatically handles the streaming protocol
-    return result.toDataStreamResponse({
-      headers: {
-        "X-Citations": JSON.stringify(citations),
-        "X-Chunks-Retrieved": similarChunks.length.toString(),
-      },
-    });
+    const responseText = completion.choices[0]?.message?.content || "No response generated.";
+    
+    console.log("✅ Response generated\n");
+
+    return new Response(
+      JSON.stringify({
+        response: responseText,
+        citations,
+        metadata: {
+          chunksRetrieved: similarChunks.length,
+          model: "gpt-4-turbo-preview",
+        },
+      }),
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
   } catch (error) {
     console.error("❌ Error in /api/chat:", error);
     
