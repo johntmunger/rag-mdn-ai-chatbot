@@ -50,3 +50,11 @@ next-env.d.ts
 
 # continue config
 .continue/
+
+#markdown files
+project-summary.md
+LATEST_RESPONSE.md
+WATCH_HEARTBEAT.md
+CRAWL_WATCH_CHAT.md
+RAILWAY_SETUP.md
+GLOBAL_ARCHITECT_CLI_SETUP.md
