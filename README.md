@@ -1,62 +1,67 @@
-### MDN-Grounded RAG Developer Assistant
+### Retrieval-Grounded LLM
 
-This project implements a production-oriented **Retrieval-Augmented Generation (RAG)** pipeline that grounds LLM responses in official **MDN documentation** to provide technically accurate, citation-backed developer assistance.
+A production-oriented **Retrieval-Augmented Generation (RAG)** system designed to ground LLM responses in **authoritative MDN documentation**.
 
-The system is designed around **controlled retrieval before generation** — prioritizing deterministic context selection, chunking strategy, and evaluation workflows over naive prompt injection.
+The architecture prioritizes **deterministic retrieval**, **structured chunking**, and **evaluation-driven iteration** over naive prompt-based generation.
 
-### System Architecture
+This project demonstrates **retrieval-first LLM integration** suitable for developer tooling and production knowledge systems.
 
-The application follows a structured RAG pipeline:
+### Architectural Overview
 
-> **Documentation Ingestion → Semantic Chunking → Embedding Generation → Vector Storage → Retrieval → Prompt Assembly → LLM Response → Evaluation**
+The system follows a structured retrieval pipeline:
+
+> **Documentation Ingestion → Chunking → Embedding → Vector Storage → Retrieval → Prompt Assembly → Response → Evaluation**
 
 #### 1. Documentation Ingestion
 
-- **MDN documentation processed via LlamaParse**
-- **Markdown normalization and structural cleanup**
-- **Structured extraction of headings and semantic blocks**
+- **MDN documentation** processed via LlamaParse
+- **Markdown normalization** and structural cleanup
+- **Extraction** of headings and semantic blocks  
+- *Focus:* preserve structural integrity before embedding.
 
-#### 2. Semantic Chunking & Overlap Tuning
+#### 2. Semantic Chunking & Overlap Strategy
 
-- **Token-based chunking** with configurable window size
-- **Overlap strategy** implemented to preserve contextual continuity
-- **Tuned chunk boundaries** to balance retrieval precision and embedding efficiency  
-- This prevents semantic fragmentation across documentation sections.
+- **Token-based chunking** with configurable window sizing
+- **Controlled overlap tuning** to preserve contextual continuity
+- **Chunk boundary optimization** for retrieval precision  
+- Prevents semantic fragmentation and improves grounding fidelity.
 
 #### 3. Embedding & Vector Retrieval
 
-- **Embeddings generated per chunk**
-- **Stored in PostgreSQL using `pgvector`**
-- **Top-k similarity search** retrieves semantically relevant context
-- **Contextual embeddings preserved** for citation mapping
+- **Embeddings generated** per semantic chunk
+- **Stored in PostgreSQL** using `pgvector`
+- **Top-k similarity retrieval** for contextual grounding
+- **Embedding metadata preserved** for citation traceability
 
-#### 4. Prompt Assembly & Grounding
+#### 4. Prompt Assembly & Context Grounding
 
 - Retrieved documentation injected into **structured prompt templates**
 - **Citation markers** mapped to original MDN sources
-- **LLM responses constrained** to retrieved context
+- **LLM responses constrained** to retrieved context  
+- *Emphasis:* retrieval before generation.
 
 #### 5. Evaluation & Quality Control
 
 - Prompt evaluation workflows implemented using **Promptfoo**
-- **Output quality validated** against expected answer criteria
-- **Retrieval precision refined** via chunk size and overlap adjustments
+- **Output validated** against deterministic answer criteria
+- **Retrieval parameters** iteratively tuned for precision  
+- Evaluation-first iteration ensures grounding reliability and reduces hallucination risk.
 
 ### Design Principles
 
-- **Grounded responses** over generative hallucination
 - **Retrieval-first architecture**
-- **Context window optimization** via overlap tuning
-- **Transparent citation mapping** for developer trust
-- **Evaluation-driven iteration**
+- **Deterministic context selection**
+- **Transparent citation mapping**
+- **Evaluation-driven refinement**
+- **Production-oriented embedding strategy**
 
 ### Interface Layer (Secondary)
 
-A developer-focused frontend interface built with:
+Minimal developer interface built with:
 
 - **Next.js (App Router)**
 - **Tailwind CSS**
-- **Markdown rendering with syntax highlighting**
-- **Citation tooltips and expandable source references**
+- **Markdown rendering** with syntax highlighting
+- **Expandable citation references**
 
-The interface is intentionally minimal — the core focus of the project is **retrieval architecture** and **evaluation fidelity**.
+The interface is intentionally lightweight. The core focus is **retrieval infrastructure** and **grounding fidelity**.
