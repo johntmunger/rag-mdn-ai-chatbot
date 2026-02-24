@@ -1,6 +1,7 @@
 import "dotenv/config";
-import * as fs from "fs";
-import * as readline from "readline";
+import fs from "fs";
+import path from "path";
+import readline from "readline";
 import Anthropic from "@anthropic-ai/sdk";
 
 const anthropic = new Anthropic({
@@ -25,11 +26,9 @@ async function sendHeartbeat(summary: string) {
       ],
       messages: [{ role: "user", content: "heartbeat" }],
     });
-    console.log(
-      `\n💓 [Heartbeat: Cache Reset - 5 more mins of 90% discount]`,
-    );
+    console.log(`\n💓 [Heartbeat: Cache Reset - 5 more mins of 90% discount]`);
     resetHeartbeat(summary);
-  } catch (e) {
+  } catch {
     console.log("\n⚠️ Heartbeat failed. Cache may expire.");
   }
 }
@@ -40,7 +39,14 @@ function resetHeartbeat(summary: string) {
 }
 
 async function chatWithProject() {
-  const projectSummary = fs.readFileSync("./project-summary.md", "utf8");
+  const projectSummaryPath = path.join(process.cwd(), "project-summary.md");
+  if (!fs.existsSync(projectSummaryPath)) {
+    console.error(
+      `❌ Error: project-summary.md not found at ${projectSummaryPath}`,
+    );
+    process.exit(1);
+  }
+  const projectSummary = fs.readFileSync(projectSummaryPath, "utf8");
   resetHeartbeat(projectSummary);
 
   console.log(`\n🤖 ARCHITECT LOADED. 90% Discount Heartbeat Active.`);
@@ -53,7 +59,14 @@ async function chatWithProject() {
       }
 
       // Read the LATEST summary from the disk (in case Terminal 1 updated it)
-      const latestSummary = fs.readFileSync("./project-summary.md", "utf8");
+      const latestSummaryPath = path.join(process.cwd(), "project-summary.md");
+      if (!fs.existsSync(latestSummaryPath)) {
+        console.error(
+          `❌ Error: project-summary.md not found at ${latestSummaryPath}`,
+        );
+        return ask();
+      }
+      const latestSummary = fs.readFileSync(latestSummaryPath, "utf8");
       resetHeartbeat(latestSummary);
 
       try {
@@ -70,22 +83,25 @@ async function chatWithProject() {
           messages: [{ role: "user", content: input }],
         });
 
-        const { cache_read_input_tokens } = response.usage;
+        const cacheReadTokens = response.usage?.cache_read_input_tokens ?? 0;
         console.log(
-          cache_read_input_tokens
+          cacheReadTokens > 0
             ? `[💎 90% SAVINGS APPLIED]`
             : `[🆕 CACHE INITIALIZED]`,
         );
 
         const content =
-          response.content[0].type === "text" ? response.content[0].text : "";
+          response.content[0]?.type === "text" ? response.content[0].text : "";
         console.log(`\n🏛️ Claude: ${content}`);
-        fs.writeFileSync('./LATEST_RESPONSE.md', content);
+        const responsePath = path.join(process.cwd(), "LATEST_RESPONSE.md");
+        fs.writeFileSync(responsePath, content);
 
         // Show token usage for reference
         if (response.usage) {
+          const cacheInfo =
+            cacheReadTokens > 0 ? ` (${cacheReadTokens} from cache)` : "";
           console.log(
-            `\n[📊 Tokens: ${response.usage.input_tokens} in, ${response.usage.output_tokens} out]`,
+            `\n[📊 Tokens: ${response.usage.input_tokens} in, ${response.usage.output_tokens} out${cacheInfo}]`,
           );
         }
       } catch (err) {
