@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Search Script for MDN RAG Application
+ * Search Script for RAG Application
  *
  * Performs vector similarity search using Voyage AI embeddings and PostgreSQL pgvector.
  * Uses cosine distance to find semantically similar document chunks.
@@ -118,136 +118,31 @@ async function searchSimilarChunks(
   }
 }
 
-/**
- * Format and display search results
- */
-function displayResults(results: SearchResult[], question: string): void {
-  console.log("\n" + "=".repeat(80));
-  console.log(`📊 SEARCH RESULTS FOR: "${question}"`);
-  console.log("=".repeat(80));
-
-  if (results.length === 0) {
-    console.log("🔍 No relevant chunks found above the similarity threshold.");
-    console.log("💡 Try:");
-    console.log("   - Rephrasing your question");
-    console.log("   - Using different keywords");
-    console.log("   - Lowering the similarity threshold");
-    return;
-  }
-
-  results.forEach((result, index) => {
-    console.log(`\n📄 RESULT ${index + 1}:`);
-    console.log(`   📋 Title: ${result.title || "N/A"}`);
-    console.log(`   📁 Source: ${result.source}`);
-    console.log(`   🔗 Slug: ${result.slug || "N/A"}`);
-    console.log(`   🎯 Similarity: ${(result.similarity * 100).toFixed(2)}%`);
-
-    if (result.heading) {
-      console.log(`   🏷️  Heading: ${result.heading}`);
-    }
-
-    console.log(`   💬 Content Preview:`);
-    console.log(
-      `   "${result.text.substring(0, 200).replace(/\n/g, " ")}${
-        result.text.length > 200 ? "..." : ""
-      }"`,
-    );
-    console.log(`   🆔 Chunk ID: ${result.id}`);
-
-    if (index < results.length - 1) {
-      console.log("\n" + "-".repeat(40));
-    }
-  });
-
-  console.log("\n" + "=".repeat(80));
-}
-
-/**
- * Main function to perform search
- */
 async function performSemanticSearch(
   question: string,
   limit: number = 5,
 ): Promise<SearchResult[]> {
-  const similarityThreshold = 0.0; // Minimum similarity score (0-1)
-  console.log("🚀 Starting search...\n");
+  const similarityThreshold = 0.0;
 
-  // Validate question
   if (!question || question.trim().length === 0) {
-    throw new Error("Question cannot be empty");
+    throw new Error("Search query cannot be empty");
   }
 
-  // Validate environment variable
   if (!process.env.VOYAGEAI_API_KEY && !process.env.VOYAGE_API_KEY) {
-    console.error(
-      "❌ VOYAGE_API_KEY or VOYAGEAI_API_KEY environment variable is required but not set",
-    );
-    process.exit(1);
+    throw new Error("Voyage API key is not configured");
   }
 
-  try {
-    // Generate embedding for the question
-    const questionEmbedding = await generateQuestionEmbedding(question);
+  // Generate embedding for the question
+  const questionEmbedding = await generateQuestionEmbedding(question);
 
-    // Search for similar chunks using vector similarity
-    const results = await searchSimilarChunks(
-      questionEmbedding,
-      limit,
-      similarityThreshold,
-    );
+  // Search for similar chunks
+  const results = await searchSimilarChunks(
+    questionEmbedding,
+    limit,
+    similarityThreshold,
+  );
 
-    // Display results
-    displayResults(results, question);
-
-    return results;
-  } catch (error) {
-    console.error("❌ Search failed:", error);
-    throw error;
-  }
-}
-
-/**
- * Handle command line arguments
- */
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-
-  let limit: number = 5;
-
-  // Parse command line arguments
-  if (args.length === 0) {
-    console.error("❌ No question provided");
-    console.log("Usage:");
-    console.log('  npm run search "your question here"');
-    console.log('  npm run search "your question" --limit=10');
-    process.exit(1);
-  }
-
-  // Parse arguments: question --limit=N
-  const question = args.filter((arg) => !arg.startsWith("--")).join(" ");
-
-  const limitArg = args.find((arg) => arg.startsWith("--limit="));
-  if (limitArg) {
-    limit = parseInt(limitArg.split("=")[1]) || 5;
-  }
-
-  console.log(`Question: "${question}"`);
-  console.log(`Limit: ${limit} results\n`);
-
-  // Perform the search
-  await performSemanticSearch(question, limit);
-}
-
-// Run the script
-if (require.main === module) {
-  main()
-    .catch((error) => {
-      console.error("Script failed:", error);
-      process.exit(1);
-    })
-    .finally(() => {
-      client.end();
-    });
+  return results;
 }
 
 // Export for potential use as a module
