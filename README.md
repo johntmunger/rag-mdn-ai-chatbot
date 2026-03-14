@@ -6,7 +6,7 @@ This repository builds the knowledge layer used by the runtime system to ground 
 
 # What This Repository Does
 
-`rag-mdn` builds the **knowledge layer** used by the AI runtime.
+`retrieval-grounded-llm` builds the **knowledge layer** used by the AI runtime.
 
 It ingests MDN documentation, transforms it into semantically searchable chunks, generates embeddings, and stores them in a vector database so that relevant documentation can be retrieved at runtime.
 
@@ -36,8 +36,6 @@ At runtime, the system retrieves the most relevant documentation chunks and inje
 This repository provides the **knowledge ingestion and embedding pipeline** used by the runtime system.
 
 It prepares documentation so that it can be retrieved and used to ground LLM responses.
-
-Full system architecture:
 
                      USER
                       │
