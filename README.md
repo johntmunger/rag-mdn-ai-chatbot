@@ -1,67 +1,264 @@
-### Retrieval-Grounded LLM
+# Retrieval Grounded LLM
 
-A production-oriented **Retrieval-Augmented Generation (RAG)** system designed to ground LLM responses in **authoritative MDN documentation**.
+A Retrieval-Augmented Generation (RAG) knowledge pipeline that ingests MDN documentation, generates embeddings, and stores them in a vector database for semantic retrieval.
 
-The architecture prioritizes **deterministic retrieval**, **structured chunking**, and **evaluation-driven iteration** over naive prompt-based generation.
+This repository builds the knowledge layer used by the runtime system to ground LLM responses in authoritative documentation.
 
-This project demonstrates **retrieval-first LLM integration** suitable for developer tooling and production knowledge systems.
+# What This Repository Does
 
-### Architectural Overview
+`rag-mdn` builds the **knowledge layer** used by the AI runtime.
 
-The system follows a structured retrieval pipeline:
+It ingests MDN documentation, transforms it into semantically searchable chunks, generates embeddings, and stores them in a vector database so that relevant documentation can be retrieved at runtime.
 
-> **Documentation Ingestion → Chunking → Embedding → Vector Storage → Retrieval → Prompt Assembly → Response → Evaluation**
+This enables the system to answer developer questions using **retrieved documentation rather than relying solely on model knowledge**.
 
-#### 1. Documentation Ingestion
+Core responsibilities of this repository:
 
-- **MDN documentation** processed via LlamaParse
-- **Markdown normalization** and structural cleanup
-- **Extraction** of headings and semantic blocks  
-- *Focus:* preserve structural integrity before embedding.
+- **Documentation ingestion**  
+  Crawl and normalize MDN documentation for downstream processing.
 
-#### 2. Semantic Chunking & Overlap Strategy
+- **Semantic chunking**  
+  Split documentation into retrieval-optimized chunks while preserving context.
 
-- **Token-based chunking** with configurable window sizing
-- **Controlled overlap tuning** to preserve contextual continuity
-- **Chunk boundary optimization** for retrieval precision  
-- Prevents semantic fragmentation and improves grounding fidelity.
+- **Embedding generation**  
+  Convert documentation chunks into vector embeddings.
 
-#### 3. Embedding & Vector Retrieval
+- **Vector storage**  
+  Store embeddings in PostgreSQL using `pgvector`.
 
-- **Embeddings generated** per semantic chunk
-- **Stored in PostgreSQL** using `pgvector`
-- **Top-k similarity retrieval** for contextual grounding
-- **Embedding metadata preserved** for citation traceability
+- **Semantic retrieval support**  
+  Provide the searchable knowledge base used by the runtime system.
 
-#### 4. Prompt Assembly & Context Grounding
+At runtime, the system retrieves the most relevant documentation chunks and injects them into the LLM prompt to generate **grounded answers with source citations**.
 
-- Retrieved documentation injected into **structured prompt templates**
-- **Citation markers** mapped to original MDN sources
-- **LLM responses constrained** to retrieved context  
-- *Emphasis:* retrieval before generation.
+# System Architecture
 
-#### 5. Evaluation & Quality Control
+This repository provides the **knowledge ingestion and embedding pipeline** used by the runtime system.
 
-- Prompt evaluation workflows implemented using **Promptfoo**
-- **Output validated** against deterministic answer criteria
-- **Retrieval parameters** iteratively tuned for precision  
-- Evaluation-first iteration ensures grounding reliability and reduces hallucination risk.
+It prepares documentation so that it can be retrieved and used to ground LLM responses.
 
-### Design Principles
+Full system architecture:
 
-- **Retrieval-first architecture**
-- **Deterministic context selection**
-- **Transparent citation mapping**
-- **Evaluation-driven refinement**
-- **Production-oriented embedding strategy**
+                     USER
+                      │
+                      ▼
+                ┌─────────────┐
+                │  runtime-ui │
+                │ React Chat  │
+                └─────────────┘
+                      │
+                      │  POST /chat
+                      ▼
+           ┌──────────────────────┐
+           │   ai-runtime-server   │
+           │   RAG Runtime API     │
+           │                       │
+           │ • Query Embedding     │
+           │ • Vector Search       │
+           │ • Context Assembly    │
+           │ • LLM Generation      │
+           └──────────────────────┘
+                      │
+                      ▼
+             ┌─────────────────┐
+             │  control-plane  │
+             │ Agent Runtime   │
+             │ Architecture    │
+             │                 │
+             │ • Orchestrator  │
+             │ • Policy Layer  │
+             │ • Kernel        │
+             │ • Tool System   │
+             └─────────────────┘
+                      │
+                      ▼
+               ┌──────────────┐
+               │   rag-mdn     │
+               │ Knowledge     │
+               │ Ingestion     │
+               │               │
+               │ • Crawl MDN   │
+               │ • Chunk Docs  │
+               │ • Embeddings  │
+               └──────────────┘
+                      │
+                      ▼
+             ┌─────────────────┐
+             │ Postgres +      │
+             │ pgvector        │
+             │ Vector Database │
+             └─────────────────┘
 
-### Interface Layer (Secondary)
+## Retrieval Pipeline
 
-Minimal developer interface built with:
+The system follows a retrieval-first architecture.
 
-- **Next.js (App Router)**
-- **Tailwind CSS**
-- **Markdown rendering** with syntax highlighting
-- **Expandable citation references**
+```
+Documentation
+   │
+   ▼
+Parsing
+   │
+   ▼
+Chunking
+   │
+   ▼
+Embedding Generation
+   │
+   ▼
+Vector Storage
+   │
+   ▼
+Semantic Retrieval
+   │
+   ▼
+Context Injection
+   │
+   ▼
+LLM Response
+```
 
-The interface is intentionally lightweight. The core focus is **retrieval infrastructure** and **grounding fidelity**.
+This ensures responses are grounded in retrieved documentation rather than model hallucination.
+
+## Documentation Ingestion
+
+Documentation is sourced from [MDN Web Docs](https://developer.mozilla.org/).
+
+**Processing steps:**
+
+- Markdown parsing
+- structural normalization
+- heading extraction
+- semantic block identification
+
+**Goal:** preserve the original document structure before chunking.
+
+## Semantic Chunking
+
+Documentation is divided into semantic chunks optimized for retrieval.
+
+**Strategy:**
+
+- token-based chunk sizing
+- controlled overlap between chunks
+- chunk boundary optimization
+
+**Benefits:**
+
+- prevents semantic fragmentation
+- improves retrieval precision
+- preserves contextual meaning
+
+## Embedding Generation
+
+Each documentation chunk is converted into a vector embedding.
+
+Embeddings enable semantic search by mapping text into high-dimensional vector space.
+
+**Example pipeline:**
+
+```
+Markdown chunk
+   │
+   ▼
+Embedding model
+   │
+   ▼
+Vector representation
+```
+
+## Vector Storage
+
+Embeddings are stored in PostgreSQL using [pgvector](https://github.com/pgvector/pgvector).
+
+**Example table:** `document_embeddings`
+
+**Columns:**
+
+| Column    | Description      |
+| --------- | ---------------- |
+| text      | Chunk content    |
+| source    | Document source  |
+| embedding | Vector embedding |
+
+Vector similarity search allows the system to retrieve relevant documentation for user queries.
+
+## Retrieval
+
+When a query is received:
+
+```
+User Query
+   │
+   ▼
+Query Embedding
+   │
+   ▼
+Vector Similarity Search
+   │
+   ▼
+Top-K Documentation Chunks
+```
+
+These chunks are returned to the runtime server to construct the LLM prompt.
+
+## Evaluation
+
+Retrieval performance is evaluated using [Promptfoo](https://www.promptfoo.dev/).
+
+**Evaluation focuses on:**
+
+- retrieval accuracy
+- grounding fidelity
+- hallucination reduction
+- citation correctness
+
+Retrieval parameters are iteratively tuned based on evaluation results.
+
+## Design Principles
+
+This system follows several design principles:
+
+- retrieval-first architecture
+- deterministic context selection
+- transparent citation mapping
+- evaluation-driven refinement
+- production-oriented embedding strategy
+
+## Repository Structure
+
+```
+rag-mdn
+├─ ingestion
+├─ embeddings
+├─ postgres
+├─ scripts
+└─ evaluation
+```
+
+Each component corresponds to a stage of the RAG pipeline.
+
+## Related Repositories
+
+This repository is part of a larger system.
+
+| Repository        | Purpose                                |
+| ----------------- | -------------------------------------- |
+| control-plane     | agent runtime architecture             |
+| ai-runtime-server | RAG runtime and chat API               |
+| rag-mdn           | documentation ingestion and embeddings |
+| runtime-ui        | chat interface demo                    |
+
+## Summary
+
+**rag-mdn** provides the knowledge ingestion and retrieval infrastructure used by the runtime system.
+
+**Key capabilities:**
+
+- structured documentation ingestion
+- semantic chunking
+- embedding generation
+- vector similarity search
+- retrieval for RAG pipelines
+
+This repository forms the knowledge backbone of the AI system.

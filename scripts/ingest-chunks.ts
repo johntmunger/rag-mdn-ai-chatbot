@@ -26,7 +26,6 @@ interface ChunkData {
     slug?: string;
     pageType?: string;
     sidebar?: string;
-    [key: string]: any;
   };
 }
 
@@ -37,16 +36,10 @@ interface Stats {
   errors: string[];
 }
 
-/**
- * Generate mock embedding vector
- */
 function generateMockEmbedding(): number[] {
   return Array.from({ length: 1024 }, () => Math.random() * 2 - 1);
 }
 
-/**
- * Process all chunked JSON files and insert into database
- */
 async function ingestChunks(options: {
   useMockEmbeddings: boolean;
   batchSize: number;
@@ -57,24 +50,13 @@ async function ingestChunks(options: {
   const chunksDir = path.join(
     __dirname,
     "../data/processed",
-    fromEmbedded ? "embedded" : "chunked"
+    fromEmbedded ? "embedded" : "chunked",
   );
 
   console.log("🚀 Starting Chunk Ingestion\n");
-  console.log("Configuration:");
-  console.log(
-    `  Mode: ${fromEmbedded ? "From Embedded (Voyage)" : useMockEmbeddings ? "Mock Embeddings" : "Real Embeddings (OpenAI)"}`
-  );
-  console.log(`  Source: ${chunksDir}`);
-  console.log(`  Batch Size: ${batchSize} chunks per batch\n`);
-  
+
   if (!fs.existsSync(chunksDir)) {
     console.error(`❌ Directory not found: ${chunksDir}`);
-    if (fromEmbedded) {
-      console.error("Run 'npm run embed' first to generate embedded chunks");
-    } else {
-      console.error("Run 'npm run chunk' first to generate chunks");
-    }
     process.exit(1);
   }
 
@@ -85,177 +67,112 @@ async function ingestChunks(options: {
     errors: [],
   };
 
-  // Find all JSON files (excluding processing log)
   const jsonFiles = fs
     .readdirSync(chunksDir)
-    .filter((file) => file.endsWith(".json") && !file.startsWith("_"));
+    .filter((f) => f.endsWith(".json") && !f.startsWith("_"));
 
   console.log(`📁 Found ${jsonFiles.length} chunk files\n`);
 
-  if (jsonFiles.length === 0) {
-    console.error("❌ No chunk files found!");
-    if (fromEmbedded) {
-      console.error("Run 'npm run embed' first to generate embedded chunks");
-    } else {
-      console.error("Run 'npm run chunk' to generate chunks");
-    }
-    process.exit(1);
-  }
-
-  // Collect all chunks from all files
   const allChunks: ChunkData[] = [];
-  
+
   for (const file of jsonFiles) {
     try {
       const filePath = path.join(chunksDir, file);
       const fileContent = JSON.parse(fs.readFileSync(filePath, "utf-8"));
-      
-      if (fileContent.chunks && Array.isArray(fileContent.chunks)) {
+
+      if (fileContent.chunks) {
         allChunks.push(...fileContent.chunks);
         stats.totalFiles++;
       }
-    } catch (error) {
-      stats.errors.push(`Failed to read ${file}: ${error}`);
+    } catch (err) {
+      stats.errors.push(`Failed reading ${file}: ${err}`);
     }
   }
 
   stats.totalChunks = allChunks.length;
-  console.log(`📦 Total chunks to process: ${stats.totalChunks}\n`);
+  console.log(`📦 Total chunks: ${stats.totalChunks}\n`);
 
-  // Process in batches
   for (let i = 0; i < allChunks.length; i += batchSize) {
     const batch = allChunks.slice(i, i + batchSize);
     const batchNum = Math.floor(i / batchSize) + 1;
-    const totalBatches = Math.ceil(allChunks.length / batchSize);
-    
-    console.log(`📦 Processing batch ${batchNum}/${totalBatches} (${batch.length} chunks)`);
+
+    console.log(`📦 Batch ${batchNum}`);
 
     try {
-      // Prepare batch for insertion
-      const batchData = batch.map((chunk) => ({
-        id: chunk.id,
-        text: chunk.text,
-        characterCount: chunk.characterCount,
-        wordCount: chunk.wordCount,
-        embedding:
+      const batchData = batch.map((chunk) => {
+        const embedding =
           fromEmbedded && chunk.embedding
             ? chunk.embedding
             : useMockEmbeddings
               ? generateMockEmbedding()
-              : null,
-        metadata: chunk.metadata,
-        source: chunk.metadata.source,
-        chunkIndex: chunk.metadata.chunkIndex,
-        startLine: chunk.metadata.startLine,
-        endLine: chunk.metadata.endLine,
-        heading: chunk.metadata.heading || null,
-        headingLevel: chunk.metadata.headingLevel || null,
-        title: chunk.metadata.title || null,
-        slug: chunk.metadata.slug || null,
-        pageType: chunk.metadata.pageType || null,
-        sidebar: chunk.metadata.sidebar || null,
-      }));
+              : null;
 
-      // Insert batch
+        return {
+          id: chunk.id,
+          text: chunk.text,
+          characterCount: chunk.characterCount,
+          wordCount: chunk.wordCount,
+
+          embedding: embedding ?? null,
+
+          metadata: chunk.metadata,
+          source: chunk.metadata.source,
+          chunkIndex: chunk.metadata.chunkIndex,
+          startLine: chunk.metadata.startLine,
+          endLine: chunk.metadata.endLine,
+
+          heading: chunk.metadata.heading ?? null,
+          headingLevel: chunk.metadata.headingLevel ?? null,
+          title: chunk.metadata.title ?? null,
+          slug: chunk.metadata.slug ?? null,
+          pageType: chunk.metadata.pageType ?? null,
+          sidebar: chunk.metadata.sidebar ?? null,
+        };
+      });
+
       await db.insert(documentEmbeddings).values(batchData);
-      
+
       stats.insertedChunks += batch.length;
-      console.log(`   ✅ Inserted ${batch.length} chunks (${stats.insertedChunks}/${stats.totalChunks})\n`);
-    } catch (error) {
-      const errorMsg = `Batch ${batchNum} failed: ${error}`;
-      console.error(`   ❌ ${errorMsg}`);
-      stats.errors.push(errorMsg);
+
+      console.log(
+        `   ✅ Inserted ${stats.insertedChunks}/${stats.totalChunks}`,
+      );
+    } catch (err) {
+      console.error("❌ INSERT FAILED");
+      console.error(err);
+      stats.errors.push(String(err));
+      throw err;
     }
   }
 
-  // Summary
-  console.log("=" .repeat(60));
-  console.log("📊 Ingestion Complete!\n");
-  console.log(`✅ Files Processed: ${stats.totalFiles}/${jsonFiles.length}`);
-  console.log(`📦 Total Chunks: ${stats.totalChunks}`);
-  console.log(`✅ Inserted: ${stats.insertedChunks}`);
-  console.log(`❌ Failed: ${stats.totalChunks - stats.insertedChunks}`);
-
-  if (stats.errors.length > 0) {
-    console.log(`\n⚠️  Errors: ${stats.errors.length}`);
-    stats.errors.slice(0, 5).forEach((err) => console.log(`   - ${err}`));
-    if (stats.errors.length > 5) {
-      console.log(`   ... and ${stats.errors.length - 5} more`);
-    }
-  }
-
-  console.log("\n🎨 View in Drizzle Studio:");
-  console.log("   npm run db:studio");
-  
-  console.log("\n🔍 Test queries:");
-  console.log("   npm run db:test");
-  
-  if (useMockEmbeddings && !fromEmbedded) {
-    console.log("\n💡 Note: Using mock embeddings for testing");
-    console.log("   Run 'npm run embed' then 'npm run ingest -- --from-embedded' for Voyage embeddings");
-  }
-  
-  console.log("=" .repeat(60));
+  console.log("\n==============================");
+  console.log("📊 Ingestion Complete");
+  console.log(`Files: ${stats.totalFiles}`);
+  console.log(`Chunks: ${stats.totalChunks}`);
+  console.log(`Inserted: ${stats.insertedChunks}`);
+  console.log("==============================\n");
 }
 
-// CLI
 async function main() {
   const args = process.argv.slice(2);
 
-  if (args.includes("--help") || args.includes("-h")) {
-    console.log(`
-Chunk Ingestion Script
-======================
-
-Ingests all chunked documents from data/processed/chunked/ into the database.
-
-Usage:
-  npm run ingest              # Use mock embeddings (fast, for testing)
-  npm run ingest -- --real    # Use real OpenAI embeddings (requires API key)
-  npm run ingest -- --batch 50  # Custom batch size
-
-Options:
-  --from-embedded, -e  Use pre-computed Voyage embeddings from data/processed/embedded/
-  --real, -r           Use real OpenAI embeddings (requires OPENAI_API_KEY in .env)
-  --batch, -b          Batch size (default: 100)
-  --help, -h           Show this help message
-
-Examples:
-  npm run ingest                         # Quick test with mock embeddings
-  npm run ingest -- --from-embedded      # Use Voyage embeddings (run 'npm run embed' first)
-  npm run ingest -- --real               # Use OpenAI embeddings (legacy)
-  npm run ingest -- --batch 50           # Smaller batches
-`);
-    process.exit(0);
-  }
-
   const fromEmbedded = args.includes("--from-embedded") || args.includes("-e");
+
   const useMockEmbeddings =
     !fromEmbedded && !args.includes("--real") && !args.includes("-r");
 
   const batchIdx = args.indexOf("--batch");
-  const batchShortIdx = args.indexOf("-b");
-  const batchArg =
-    (batchIdx !== -1 ? args[batchIdx + 1] : null) ||
-    (batchShortIdx !== -1 ? args[batchShortIdx + 1] : null);
-  const batchSize = Math.max(1, parseInt(batchArg || "100", 10) || 100);
-
-  if (
-    !fromEmbedded &&
-    !useMockEmbeddings &&
-    !process.env.OPENAI_API_KEY
-  ) {
-    console.error("❌ OPENAI_API_KEY not found in .env file");
-    console.error("Add your OpenAI API key or use mock embeddings:");
-    console.error("  npm run ingest (uses mock embeddings)");
-    process.exit(1);
-  }
+  const batchSize =
+    batchIdx !== -1 ? parseInt(args[batchIdx + 1] || "100") : 100;
 
   try {
-    await ingestChunks({ useMockEmbeddings, batchSize, fromEmbedded });
-  } catch (error) {
-    console.error("\n❌ Fatal error:", error);
-    process.exit(1);
+    await ingestChunks({
+      useMockEmbeddings,
+      batchSize,
+      fromEmbedded,
+    });
+  } catch (err) {
+    console.error("Fatal error:", err);
   } finally {
     await closeConnection();
   }

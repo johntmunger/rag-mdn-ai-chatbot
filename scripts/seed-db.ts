@@ -69,14 +69,9 @@ async function seedDatabase() {
           metadata: chunk.metadata,
           source: chunk.metadata.source,
           chunkIndex: chunk.metadata.chunkIndex,
-          startLine: chunk.metadata.startLine,
-          endLine: chunk.metadata.endLine,
           heading: chunk.metadata.heading,
-          headingLevel: chunk.metadata.headingLevel,
           title: chunk.metadata.title,
           slug: chunk.metadata.slug,
-          pageType: chunk.metadata.pageType,
-          sidebar: chunk.metadata.sidebar,
         });
 
         console.log(`   ✅ Inserted chunk: ${chunk.id}`);

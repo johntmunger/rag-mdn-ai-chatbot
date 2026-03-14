@@ -1,34 +1,21 @@
-import "dotenv/config";
-import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "./schema/index";
+import { drizzle } from "drizzle-orm/postgres-js";
+import * as schema from "./schema";
 
-// Check for DATABASE_URL
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL is not set. Please add it to your .env file.\n\n" +
-    "Example for local Docker setup:\n" +
-    'DATABASE_URL="postgresql://example:example@localhost:5455/example"'
-  );
-}
+const connectionString =
+  process.env.DATABASE_URL ||
+  "postgres://example:example@localhost:5455/example";
 
-// Create postgres connection
-// Default Docker connection: postgresql://example:example@localhost:5455/example
-const connectionString = process.env.DATABASE_URL;
+console.log("DB:", connectionString);
 
-// For query purposes
-const queryClient = postgres(connectionString);
-export const db = drizzle(queryClient, { schema });
+const client = postgres(connectionString, {
+  max: 1,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
 
-// For migrations (max 1 connection)
-const migrationClient = postgres(connectionString, { max: 1 });
-export const migrationDb = drizzle(migrationClient, { schema });
+export const db = drizzle(client, { schema });
 
-// Helper to close connections
 export async function closeConnection() {
-  await queryClient.end();
-  await migrationClient.end();
+  await client.end();
 }
-
-// Export schema
-export { schema };
